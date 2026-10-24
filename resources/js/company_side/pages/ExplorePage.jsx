@@ -1,0 +1,97 @@
+import React, { useMemo, useState } from 'react';
+import { User } from 'lucide-react';
+import CreateRequestModal from '../components/CreateRequestModal';
+
+export default function ExplorePage({ freelancers = [], onSubmit, search = '', activeFilter = 'all' }) {
+    const [selectedFreelancer, setSelectedFreelancer] = useState(null);
+
+    const filteredFreelancers = useMemo(() => {
+        const q = search.trim().toLowerCase();
+
+        return freelancers.filter((f) => {
+            const industries = f.industries || [];
+
+            const matchesIndustry =
+                activeFilter === 'all' || industries.includes(activeFilter);
+
+            const matchesSearch =
+                !q ||
+                f.name?.toLowerCase().includes(q) ||
+                f.jobTitle?.toLowerCase().includes(q) ||
+                f.bio?.toLowerCase().includes(q);
+
+            return matchesIndustry && matchesSearch;
+        });
+    }, [freelancers, activeFilter, search]);
+
+    return (
+        <div className="w-full max-w-5xl mx-auto">
+            <div className="flex items-center justify-between gap-4 mb-6">
+                <h1 className="text-2xl font-bold text-[#28251d]">استكشف الفرص</h1>
+            </div>
+
+            {filteredFreelancers.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredFreelancers.map((freelancer) => (
+                        <article
+                            key={freelancer.id}
+                            className="rounded-2xl border border-[#e6e4de] bg-white p-5 shadow-sm"
+                        >
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-12 h-12 rounded-full bg-[#e9f2ff] overflow-hidden flex items-center justify-center text-primary font-bold">
+                                    {freelancer.avatar ? (
+                                        <img
+                                            src={freelancer.avatar}
+                                            alt={freelancer.name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <User size={20} />
+                                    )}
+                                </div>
+                                <div className="min-w-0">
+                                    <h2 className="font-bold text-[#28251d] truncate">{freelancer.name}</h2>
+                                    <p className="text-xs text-[#7a7974] truncate">
+                                        {freelancer.jobTitle || 'مستقل محترف'}
+                                    </p>
+                                </div>
+                            </div>
+                            <p className="text-sm text-[#7a7974] line-clamp-3 min-h-18">
+                                {freelancer.bio || 'متخصص في تقديم حلول احترافية للمشاريع الريادية.'}
+                            </p>
+                            <div className="flex flex-wrap gap-1.5 mt-4">
+                                {(freelancer.industries || []).slice(0, 3).map((industry) => (
+                                    <span
+                                        key={industry}
+                                        className="rounded-full bg-[#f7f6f2] px-2.5 py-1 text-[11px] font-bold text-[#7a7974]"
+                                    >
+                                        {industry}
+                                    </span>
+                                ))}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setSelectedFreelancer(freelancer)}
+                                className="mt-5 w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#1b62c4]"
+                            >
+                                طلب خدمة من هذا المستقل
+                            </button>
+                        </article>
+                    ))}
+                </div>
+            ) : (
+                <div className="rounded-2xl border border-dashed border-[#d4d1ca] bg-white py-16 text-center text-[#7a7974]">
+                    <p className="font-bold">لا توجد نتائج مطابقة</p>
+                    <p className="mt-1 text-sm">جرّب مجالاً آخر أو امسح التصفية.</p>
+                </div>
+            )}
+
+            <CreateRequestModal
+                isOpen={Boolean(selectedFreelancer)}
+                onClose={() => setSelectedFreelancer(null)}
+                onSubmit={(request) => onSubmit(request, null, () => setSelectedFreelancer(null))}
+                fixedFreelancer={selectedFreelancer}
+            />
+        </div>
+    );
+}
