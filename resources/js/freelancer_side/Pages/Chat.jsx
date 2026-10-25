@@ -528,6 +528,7 @@ export default function Chat({ conversation, conversations = [], search = '' }) 
                     onClose={() => setIsProposalModalOpen(false)}
                     chatId={conversation.id}
                     clientName={clientName}
+                    clientAvatar={clientAvatar}
                     clientRequest={requestTitle}
                     initialData={{
                         title: requestTitle || '',

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import ProposalDetailsModal from '../Components/ProposalDetailsModal';
 import ProposalFormModal from '../Components/ProposalFormModal';
+import CompanyProfileModal from '../Components/CompanyProfileModal';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import {
   MessageSquare,
@@ -8,8 +9,15 @@ import {
   ChevronLeft,
   User,
   Pencil,
-  Trash2
+  Trash2,
 } from 'lucide-react';
+
+const normalizeImageUrl = (url) => {
+  if (!url || typeof url !== 'string') return null;
+  let normalized = url.replace(/\/storage\/v1\/s3\/\.\.\/object\/public\//g, '/storage/v1/object/public/');
+  normalized = normalized.replace(/\/s3\/\.\.\/object\/public\//g, '/object/public/');
+  return normalized;
+};
 
 const categoryLabels = {
   marketing_services: 'خدمات التسويق',
@@ -95,12 +103,14 @@ export default function Proposals({
   const [selectedProposal, setSelectedProposal] = useState(null);
   const [proposalActionId, setProposalActionId] = useState(null);
   const [activeProposalModal, setActiveProposalModal] = useState(null);
+  const [selectedCompanyForProfile, setSelectedCompanyForProfile] = useState(null);
 
   const handleOpenCreateProposal = (order) => {
     setActiveProposalModal({
       mode: 'create',
       briefId: order.id,
-      clientName: order.client,
+      clientName: order.companyName || order.client,
+      clientAvatar: order.avatar,
       clientRequest: order.service,
       initialData: {
         title: order.service || '',
@@ -120,6 +130,7 @@ export default function Proposals({
       mode: 'edit',
       proposalId: prop.id,
       clientName: prop.client,
+      clientAvatar: prop.avatar || raw.avatar || raw.clientAvatar,
       clientRequest: prop.title,
       initialData: {
         title: raw.title || prop.title || '',
@@ -214,7 +225,7 @@ export default function Proposals({
         {activeTab === 'direct' && (
           <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {safeDirectOrders.length > 0 ? (
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {safeDirectOrders.map((order) => (
                   <DirectOrderCard
                     key={order.id}
@@ -222,6 +233,7 @@ export default function Proposals({
                     onAccept={() => handleAcceptOrder(order.id)}
                     onReject={() => handleRejectOrder(order.id)}
                     onCreateProposal={() => handleOpenCreateProposal(order)}
+                    onViewCompany={() => setSelectedCompanyForProfile(order)}
                     processing={processing}
                   />
                 ))}
@@ -276,10 +288,19 @@ export default function Proposals({
           briefId={activeProposalModal.briefId}
           chatId={activeProposalModal.chatId}
           clientName={activeProposalModal.clientName}
+          clientAvatar={activeProposalModal.clientAvatar}
           clientRequest={activeProposalModal.clientRequest}
           initialData={activeProposalModal.initialData}
         />
       )}
+
+      {/* Modal display for company profile */}
+      <CompanyProfileModal
+        isOpen={Boolean(selectedCompanyForProfile)}
+        company={selectedCompanyForProfile}
+        companyId={selectedCompanyForProfile?.clientId}
+        onClose={() => setSelectedCompanyForProfile(null)}
+      />
     </div>
   );
 }
@@ -289,7 +310,7 @@ export default function Proposals({
 const TabButton = ({ label, active, onClick }) => (
   <button
     onClick={onClick}
-    className={`pb-4 px-2 text-sm font-bold transition-all border-b-2 ${active ? 'text-slate-700 border-[#2a7de1]' : 'text-slate-400 border-transparent hover:text-slate-600'
+    className={`pb-4 px-2 text-sm font-semibold transition-all border-b-2 ${active ? 'text-slate-700 border-[#2a7de1]' : 'text-slate-400 border-transparent hover:text-slate-600'
       }`}
   >
     {label}
@@ -304,12 +325,12 @@ const NegotiationCard = ({ id, client, service, lastMsg, time, status, statusCol
       </div>
       <div>
         <div className="flex items-center gap-3 mb-1">
-          <h3 className="font-bold text-slate-800">{client}</h3>
-          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md border ${statusColor || 'bg-[#ffb548]/10 text-slate-700 border-[#ffb548]/20'}`}>
+          <h3 className="font-semibold text-slate-800">{client}</h3>
+          <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-md border ${statusColor || 'bg-[#ffb548]/10 text-slate-700 border-[#ffb548]/20'}`}>
             {status}
           </span>
         </div>
-        <p className="text-sm font-bold text-slate-700 mb-2">{service}</p>
+        <p className="text-sm font-semibold text-slate-700 mb-2">{service}</p>
         <p className="text-sm text-slate-500 line-clamp-1">"{lastMsg}"</p>
       </div>
     </div>
@@ -323,7 +344,7 @@ const NegotiationCard = ({ id, client, service, lastMsg, time, status, statusCol
         href={`/freelancer/chat/${chatId || id}`}
         prefetch="hover"
         preserveScroll
-        className="px-5 py-2.5 bg-white border border-gray-200 text-slate-600 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 hover:text-slate-700 transition-all flex items-center gap-2"
+        className="px-5 py-2.5 bg-white border border-gray-200 text-slate-600 rounded-xl font-semibold text-sm shadow-sm hover:bg-slate-50 hover:text-slate-700 transition-all flex items-center gap-2"
       >
         <MessageSquare size={16} />
         فتح المحادثة
@@ -332,77 +353,154 @@ const NegotiationCard = ({ id, client, service, lastMsg, time, status, statusCol
   </div>
 );
 
-const DirectOrderCard = ({ id, isBrief, client, service, category, description, price, delivery, onAccept, onReject, onCreateProposal, processing }) => (
-  <div className="flex h-full flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
-    <div className="flex items-start justify-between gap-4">
-      <div className="min-w-0 flex-1">
-        <h3 className="line-clamp-1 text-lg font-bold text-slate-800">{service}</h3>
-        <p className="mt-1 text-xs font-medium text-slate-500">
-          العميل: <span className="font-bold text-slate-700">{client}</span>
-        </p>
-      </div>
-      {isBrief ? (
-        category && (
-          <span className="shrink-0 rounded-lg bg-primary/10 px-3 py-1 text-xs font-bold text-slate-700">
-            {categoryLabels[category] || category}
-          </span>
-        )
-      ) : (
-        <div className="shrink-0 text-end">
-          <p className="text-2xl font-black leading-none text-slate-700">
-            {price} <span className="text-xs font-bold text-slate-400">ر.ي</span>
-          </p>
-          <p className="mt-1 text-[10px] font-bold uppercase text-slate-400">الميزانية المقترحة</p>
-        </div>
-      )}
-    </div>
+const DirectOrderCard = ({
+  id,
+  isBrief,
+  clientId,
+  client,
+  clientName,
+  companyName,
+  avatar,
+  city,
+  industry,
+  service,
+  category,
+  description,
+  price,
+  delivery,
+  onAccept,
+  onReject,
+  onCreateProposal,
+  onViewCompany,
+  processing,
+}) => {
+  const avatarUrl = normalizeImageUrl(avatar);
+  const displayName = companyName || client || 'شركة';
 
-    {isBrief && description && (
-      <div className="my-4 flex-1 rounded-xl border border-slate-100 bg-slate-50/70 p-4">
-        <p className="mb-1.5 text-xs font-bold text-slate-400">تفاصيل الطلب</p>
-        <p className="line-clamp-3 break-words text-sm leading-relaxed text-slate-600">
-          {description}
-        </p>
-      </div>
-    )}
-
-    <div className="mt-auto space-y-4 border-t border-slate-100 pt-4">
-      <div className="flex items-center justify-between text-xs">
-        <span className="font-medium text-slate-400">
-          {isBrief ? 'تاريخ إرسال الطلب' : 'تاريخ التسليم المطلوب'}
-        </span>
-        <span className="font-bold text-slate-700">{delivery}</span>
-      </div>
-
-      <div className="flex items-center gap-3">
-        {isBrief ? (
+  return (
+    <div className="flex h-full flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs transition-all hover:shadow-md hover:border-blue-200 group">
+      <div>
+        {/* Top Header: Company Identity & Budget (if project inquiry) */}
+        <div className="flex items-center justify-between gap-3 mb-3 pb-2.5 border-b border-slate-100">
+          {/* Company Branding: Logo + Name only */}
           <button
             type="button"
-            onClick={onCreateProposal}
-            className="flex-1 rounded-xl bg-[#2a7de1] py-2.5 text-center text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#1f6fd4] cursor-pointer"
+            onClick={onViewCompany}
+            className="flex items-center gap-2.5 text-start group/company cursor-pointer transition-transform hover:-translate-y-0.5"
+            title="انقر لعرض الملف التعريفي للشركة"
           >
-            إرسال عرض سعر
+            <div className="relative w-9 h-9 rounded-lg bg-slate-50 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center shadow-2xs group-hover/company:border-[#2a7de1] transition-colors">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={displayName}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    if (e.currentTarget.parentElement) {
+                      e.currentTarget.parentElement.classList.add('bg-blue-50');
+                    }
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-[#2a7de1] to-[#1f6fd4] text-white flex items-center justify-center font-semibold text-sm">
+                  {displayName.charAt(0) || 'ش'}
+                </div>
+              )}
+            </div>
+
+            <div className="min-w-0">
+              <span className="font-semibold text-slate-800 text-sm group-hover/company:text-[#2a7de1] transition-colors line-clamp-1">
+                {displayName}
+              </span>
+            </div>
           </button>
-        ) : (
-          <button
-            onClick={onAccept}
-            disabled={processing}
-            className="flex-1 rounded-xl bg-[#2a7de1] py-2.5 text-center text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#1f6fd4] disabled:opacity-50"
-          >
-            قبول وبدء العمل
-          </button>
+
+          {/* Proposed Budget for Inquiry Orders */}
+          {!isBrief && (
+            <div className="shrink-0 text-end">
+              <p className="text-base sm:text-lg font-semibold leading-none text-slate-800">
+                {price} <span className="text-[11px] font-medium text-slate-400">ر.ي</span>
+              </p>
+              <p className="mt-0.5 text-[9px] font-medium uppercase text-slate-400">الميزانية المقترحة</p>
+            </div>
+          )}
+        </div>
+
+        {/* Request Title & Request Field Row */}
+        <div className="mb-2.5 flex flex-wrap items-start gap-x-6 sm:gap-x-8 gap-y-2">
+          {/* Title on the right (اليمين) مع قابلية التمدد */}
+          <div className="min-w-0 max-w-[65%] sm:max-w-[70%]">
+            <span className="text-[11px] sm:text-xs font-medium text-slate-500 block mb-0.5">عنوان الطلب:</span>
+            <h3 className="text-xs sm:text-sm font-semibold text-slate-800 leading-snug break-words">
+              {service}
+            </h3>
+          </div>
+
+          {/* Request Field closer to the right (أقرب لليمين وليس في أقصى اليسار) */}
+          {category && (
+            <div className="shrink-0 text-start">
+              <span className="text-[11px] sm:text-xs font-medium text-slate-500 block mb-0.5">مجال الطلب:</span>
+              <p className="text-xs sm:text-sm font-semibold text-slate-800 leading-snug break-words">
+                {categoryLabels[category] || category}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Request Details */}
+        {description && (
+          <div className="my-2 rounded-xl border border-slate-200/80 bg-slate-50/90 p-2.5 sm:p-3">
+            <span className="mb-1 text-[11px] sm:text-xs font-medium text-slate-500 block">تفاصيل الطلب:</span>
+            <p className="line-clamp-2 break-words text-xs sm:text-[13px] leading-relaxed text-slate-700">
+              {description}
+            </p>
+          </div>
         )}
-        <button
-          onClick={onReject}
-          disabled={processing}
-          className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-600 transition-colors hover:border-red-100 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-        >
-          رفض
-        </button>
+      </div>
+
+      {/* Footer: Timeline & Action Buttons */}
+      <div className="mt-auto space-y-2.5 border-t border-slate-100 pt-2.5">
+        <div className="flex items-center justify-between text-xs">
+          <span className="flex items-center gap-1.5 font-medium text-slate-500">
+            <Clock size={13} />
+            {isBrief ? 'تاريخ إرسال الطلب:' : 'تاريخ التسليم المطلوب:'}
+          </span>
+          <span className="font-semibold text-slate-700">{delivery}</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {isBrief ? (
+            <button
+              type="button"
+              onClick={onCreateProposal}
+              className="flex-1 rounded-lg bg-[#2a7de1] py-2 text-center text-xs font-semibold text-white shadow-2xs transition-colors hover:bg-[#1f6fd4] cursor-pointer"
+            >
+              تقديم عرض سعر
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onAccept}
+              disabled={processing}
+              className="flex-1 rounded-lg bg-[#2a7de1] py-2 text-center text-xs font-semibold text-white shadow-2xs transition-colors hover:bg-[#1f6fd4] disabled:opacity-50 cursor-pointer"
+            >
+              قبول وبدء العمل
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onReject}
+            disabled={processing}
+            className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 transition-colors hover:border-red-100 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 cursor-pointer"
+          >
+            رفض
+          </button>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const SentProposalRow = ({ client, title, amount, date, status, statusType, onViewDetails, onEdit, onDelete, actionProcessing }) => {
   const statusStyles = {
@@ -412,39 +510,39 @@ const SentProposalRow = ({ client, title, amount, date, status, statusType, onVi
   };
 
   return (
-    <div className="p-6 hover:bg-slate-50 transition-colors group">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+    <div className="p-4 sm:p-5 hover:bg-slate-50 transition-colors group">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
-          <h3 className="font-bold text-slate-800 text-lg mb-1 group-hover:text-slate-700 transition-colors truncate">{title}</h3>
-          <p className="text-sm text-slate-500">العميل: {client}</p>
+          <h3 className="font-semibold text-slate-800 text-sm sm:text-base mb-1 group-hover:text-[#2a7de1] transition-colors truncate">{title}</h3>
+          <p className="text-xs text-slate-500">العميل: {client}</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-6 shrink-0">
+        <div className="flex flex-wrap items-center gap-5 shrink-0">
           <div className="text-center">
-            <p className="text-sm text-slate-600 font-bold mb-1">{date}</p>
+            <p className="text-xs text-slate-600 font-semibold mb-0.5">{date}</p>
             <p className="text-[10px] text-slate-400 uppercase tracking-tighter">تاريخ الإرسال</p>
           </div>
           <div className="text-center">
-            <p className="text-lg font-black text-slate-800">{amount} <span className="text-xs font-bold text-slate-400">ر.ي</span></p>
+            <p className="text-base font-semibold text-slate-800">{amount} <span className="text-[11px] font-medium text-slate-400">ر.ي</span></p>
             <p className="text-[10px] text-slate-400 uppercase tracking-tighter">القيمة الإجمالية</p>
           </div>
-          <span className={`px-3 py-1 text-[10px] font-bold rounded-full border ${statusStyles[statusType] || statusStyles.pending}`}>
+          <span className={`px-2.5 py-0.5 text-[10px] font-semibold rounded-full border ${statusStyles[statusType] || statusStyles.pending}`}>
             {status}
           </span>
         </div>
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+      <div className="mt-3.5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             onViewDetails && onViewDetails();
           }}
-          className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-slate-700 transition-colors"
+          className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-[#2a7de1] transition-colors"
         >
           عرض التفاصيل
-          <ChevronLeft size={18} className="transition-transform group-hover:-translate-x-1" />
+          <ChevronLeft size={16} className="transition-transform group-hover:-translate-x-1" />
         </button>
 
         <div className="flex items-center gap-2">
@@ -455,9 +553,9 @@ const SentProposalRow = ({ client, title, amount, date, status, statusType, onVi
                 onClick={onEdit}
                 disabled={actionProcessing}
                 title="تعديل العرض"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 px-3 py-2 text-sm font-bold text-primary transition hover:bg-primary/10 disabled:opacity-50"
+                className="inline-flex items-center gap-1 rounded-lg border border-primary/30 px-2.5 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/10 disabled:opacity-50"
               >
-                <Pencil size={15} />
+                <Pencil size={13} />
                 تعديل
               </button>
               <button
@@ -465,9 +563,9 @@ const SentProposalRow = ({ client, title, amount, date, status, statusType, onVi
                 onClick={onDelete}
                 disabled={actionProcessing}
                 title="حذف العرض"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-sm font-bold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
               >
-                <Trash2 size={15} />
+                <Trash2 size={13} />
                 {actionProcessing ? 'جاري الحذف...' : 'حذف'}
               </button>
             </>

@@ -129,4 +129,5 @@ Route::prefix('freelancer')
         Route::get('/chat/{conversation}/messages', [Freelancer\ChatController::class, 'messages'])->name('freelancer.chat.messages');
         Route::post('/chat/{conversation}', [Freelancer\ChatController::class, 'store'])->name('freelancer.chat.store');
         Route::delete('/chat/{conversation}', [Freelancer\ChatController::class, 'destroy'])->name('freelancer.chat.destroy');
+        Route::get('/companies/{id}', [Freelancer\CompanyController::class, 'show'])->name('freelancer.companies.show');
     });

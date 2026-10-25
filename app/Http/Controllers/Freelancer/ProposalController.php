@@ -48,13 +48,15 @@ class ProposalController extends Controller
         $fetch = function () use ($user, $search) {
             $targetedBriefs = Brief::query()
                 ->leftJoin('sila_p.users as client', 'sila_p.briefs.client_id', '=', 'client.id')
+                ->leftJoin('sila_p.client_companies as company', 'company.user_id', '=', 'client.id')
                 ->where('sila_p.briefs.status', 'open')
                 ->where('sila_p.briefs.targeted_freelancer_id', $user->id)
                 ->when($search !== '', function ($query) use ($search) {
                     $query->where(function ($query) use ($search) {
                         $query->where('sila_p.briefs.title', 'ilike', "%{$search}%")
                             ->orWhere('sila_p.briefs.description', 'ilike', "%{$search}%")
-                            ->orWhere('client.user_name', 'ilike', "%{$search}%");
+                            ->orWhere('client.user_name', 'ilike', "%{$search}%")
+                            ->orWhere('company.business_name', 'ilike', "%{$search}%");
                     });
                 })
                 ->select([
@@ -67,15 +69,28 @@ class ProposalController extends Controller
                     'sila_p.briefs.description',
                     'sila_p.briefs.created_at',
                     'client.user_name as client_user_name',
+                    'client.avatar_path as client_avatar',
+                    'client.city as client_city',
+                    'company.business_name as company_business_name',
+                    'company.industry as company_industry',
+                    'company.company_description as company_description',
                 ])
                 ->orderByDesc('sila_p.briefs.created_at')
                 ->get()
                 ->map(function ($brief) {
+                    $displayName = $brief->company_business_name ?: ($brief->client_user_name ?? 'شركة');
                     return [
                         'id'           => (string) $brief->id,
                         'isBrief'      => true,
                         'providerType' => $brief->targeted_freelancer_id ? 'specific' : ($brief->provider_type ?? 'public'),
-                        'client'       => $brief->client_user_name ?? 'عميل جديد',
+                        'clientId'     => (string) $brief->client_id,
+                        'client'       => $displayName,
+                        'clientName'   => $brief->client_user_name ?? 'عميل',
+                        'companyName'  => $brief->company_business_name,
+                        'avatar'       => $brief->client_avatar,
+                        'city'         => $brief->client_city,
+                        'industry'     => $brief->company_industry,
+                        'companyDescription' => $brief->company_description,
                         'service'      => $brief->title,
                         'category'     => $brief->category,
                         'description'  => $brief->description,
@@ -86,12 +101,14 @@ class ProposalController extends Controller
 
             $inquiryProjects = Project::query()
                 ->leftJoin('sila_p.users as client', 'sila_p.projects.client_id', '=', 'client.id')
+                ->leftJoin('sila_p.client_companies as company', 'company.user_id', '=', 'client.id')
                 ->where('sila_p.projects.freelancer_id', $user->id)
                 ->where('sila_p.projects.status', 'inquiry')
                 ->when($search !== '', function ($query) use ($search) {
                     $query->where(function ($query) use ($search) {
                         $query->where('sila_p.projects.title', 'ilike', "%{$search}%")
-                            ->orWhere('client.user_name', 'ilike', "%{$search}%");
+                            ->orWhere('client.user_name', 'ilike', "%{$search}%")
+                            ->orWhere('company.business_name', 'ilike', "%{$search}%");
                     });
                 })
                 ->select([
@@ -103,19 +120,32 @@ class ProposalController extends Controller
                     'sila_p.projects.status',
                     'sila_p.projects.created_at',
                     'client.user_name as client_user_name',
+                    'client.avatar_path as client_avatar',
+                    'client.city as client_city',
+                    'company.business_name as company_business_name',
+                    'company.industry as company_industry',
+                    'company.company_description as company_description',
                     DB::raw('COALESCE((SELECT p.price FROM sila_p.proposals p WHERE p.project_id = sila_p.projects.id LIMIT 1), (SELECT p.price FROM sila_p.proposals p WHERE p.brief_id = sila_p.projects.brief_id LIMIT 1), 0) as resolved_price'),
                     DB::raw("COALESCE((SELECT p.timeline FROM sila_p.proposals p WHERE p.project_id = sila_p.projects.id LIMIT 1), (SELECT p.timeline FROM sila_p.proposals p WHERE p.brief_id = sila_p.projects.brief_id LIMIT 1), 'بعد 5 أيام') as resolved_timeline"),
                 ])
                 ->orderByDesc('sila_p.projects.created_at')
                 ->get()
                 ->map(function ($order) {
+                    $displayName = $order->company_business_name ?: ($order->client_user_name ?? 'شركة');
                     return [
-                        'id'       => (string) $order->id,
-                        'isBrief'  => false,
-                        'client'   => $order->client_user_name ?? 'عميل جديد',
-                        'service'  => $order->title,
-                        'price'    => number_format((float) ($order->resolved_price ?? 0)),
-                        'delivery' => $order->resolved_timeline ?? 'بعد 5 أيام',
+                        'id'           => (string) $order->id,
+                        'isBrief'      => false,
+                        'clientId'     => (string) $order->client_id,
+                        'client'       => $displayName,
+                        'clientName'   => $order->client_user_name ?? 'عميل',
+                        'companyName'  => $order->company_business_name,
+                        'avatar'       => $order->client_avatar,
+                        'city'         => $order->client_city,
+                        'industry'     => $order->company_industry,
+                        'companyDescription' => $order->company_description,
+                        'service'      => $order->title,
+                        'price'        => number_format((float) ($order->resolved_price ?? 0)),
+                        'delivery'     => $order->resolved_timeline ?? 'بعد 5 أيام',
                     ];
                 });
 
@@ -425,17 +455,7 @@ class ProposalController extends Controller
 
         abort_if($chat->freelancer_id !== $user->id, 403);
 
-        $request->validate([
-            'title'                        => 'nullable|string|max:255',
-            'price'                        => 'required|numeric|min:1',
-            'timeline'                     => 'required|string|max:100',
-            'revision_limit'               => 'required|integer',
-            'validity'                     => 'required|string|max:100',
-            'additional_terms'             => 'nullable|string',
-            'milestones'                   => 'required|array|min:1',
-            'milestones.*.title'           => 'required|string|max:255',
-            'milestones.*.description'     => 'required|string',
-        ]);
+        $request->validate($this->proposalRules(), $this->proposalMessages());
 
         $title = $request->title ?: ($chat->subject ?? 'عرض سعر');
 
@@ -489,17 +509,34 @@ class ProposalController extends Controller
 
     private function validatedProposal(Request $request): array
     {
-        return $request->validate([
-            'title' => 'nullable|string|max:255',
-            'price' => 'required|numeric|min:1',
-            'timeline' => 'required|string|max:100',
-            'revision_limit' => 'required|integer',
-            'validity' => 'required|string|max:100',
-            'additional_terms' => 'nullable|string',
-            'milestones' => 'required|array|min:1',
-            'milestones.*.title' => 'required|string|max:255',
-            'milestones.*.description' => 'required|string',
-        ]);
+        return $request->validate($this->proposalRules(), $this->proposalMessages());
+    }
+
+    private function proposalRules(): array
+    {
+        return [
+            'title'                    => ['nullable', 'string', 'max:255', 'regex:/^[\p{L}\p{M}0-9\s\-_.,()\'"\/]+$/u'],
+            'price'                    => ['required', 'numeric', 'min:1', 'regex:/^[1-9]\d*(\.\d{1,2})?$/'],
+            'timeline'                 => ['required', 'string', 'max:100', 'regex:/^[\p{L}\p{M}0-9\s\-_.]+$/u'],
+            'revision_limit'           => ['required', 'integer', 'between:0,3', 'regex:/^[0-3]$/'],
+            'validity'                 => ['required', 'string', 'max:100', 'regex:/^[\p{L}\p{M}0-9\s\-_.]+$/u'],
+            'additional_terms'         => ['nullable', 'string', 'regex:/^[\p{L}\p{M}0-9\s\-_.,()\'"\r\n\/!?؛،:]*$/u'],
+            'milestones'               => ['required', 'array', 'min:1'],
+            'milestones.*.title'       => ['required', 'string', 'max:255', 'regex:/^[\p{L}\p{M}0-9\s\-_.,()\'"\/]+$/u'],
+            'milestones.*.description' => ['required', 'string', 'regex:/^[\p{L}\p{M}0-9\s\-_.,()\'"\r\n\/!?؛،:]+$/u'],
+        ];
+    }
+
+    private function proposalMessages(): array
+    {
+        return [
+            'price.regex' => 'يرجى إدخال مبلغ صحيح بالأرقام فقط.',
+            'revision_limit.between' => 'عدد التعديلات المسموحة يجب أن يكون من 0 إلى 3 فقط.',
+            'revision_limit.regex' => 'عدد التعديلات يجب أن يكون رقماً من 0 إلى 3.',
+            'milestones.*.title.regex' => 'عنوان المرحلة يحتوي على رموز غير مسموحة.',
+            'milestones.*.description.regex' => 'وصف المرحلة يحتوي على رموز غير مسموحة.',
+            'additional_terms.regex' => 'الشروط الإضافية تحتوي على رموز غير مسموحة.',
+        ];
     }
 
     private function createMilestones(Proposal $proposal, array $milestones): void

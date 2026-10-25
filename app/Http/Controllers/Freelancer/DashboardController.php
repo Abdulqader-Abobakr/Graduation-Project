@@ -79,6 +79,7 @@ class DashboardController extends Controller
         $fetch = function () use ($search) {
             return Brief::query()
                 ->leftJoin('sila_p.users as client', 'sila_p.briefs.client_id', '=', 'client.id')
+                ->leftJoin('sila_p.client_companies as company', 'company.user_id', '=', 'client.id')
                 ->where('sila_p.briefs.status', 'open')
                 ->whereNull('sila_p.briefs.targeted_freelancer_id')
                 ->where(function ($query) {
@@ -89,7 +90,8 @@ class DashboardController extends Controller
                     $query->where(function ($query) use ($search) {
                         $query->where('sila_p.briefs.title', 'ilike', "%{$search}%")
                             ->orWhere('sila_p.briefs.description', 'ilike', "%{$search}%")
-                            ->orWhere('client.user_name', 'ilike', "%{$search}%");
+                            ->orWhere('client.user_name', 'ilike', "%{$search}%")
+                            ->orWhere('company.business_name', 'ilike', "%{$search}%");
                     });
                 })
                 ->select([
@@ -103,19 +105,34 @@ class DashboardController extends Controller
                     'sila_p.briefs.status',
                     'sila_p.briefs.created_at',
                     'client.user_name as client_user_name',
+                    'client.avatar_path as client_avatar',
+                    'client.city as client_city',
+                    'company.business_name as company_business_name',
+                    'company.industry as company_industry',
+                    'company.company_description as company_description',
                 ])
                 ->latest('sila_p.briefs.created_at')
                 ->take(20)
                 ->get()
-                ->map(fn (Brief $brief) => [
-                    'id' => (string) $brief->id,
-                    'title' => $brief->title,
-                    'category' => $brief->category,
-                    'providerType' => $brief->targeted_freelancer_id ? 'specific' : ($brief->provider_type ?? 'public'),
-                    'description' => $brief->description,
-                    'client' => $brief->client_user_name ?? 'عميل',
-                    'createdAt' => $brief->created_at?->locale('ar')->diffForHumans(),
-                ])
+                ->map(function (Brief $brief) {
+                    $displayName = $brief->company_business_name ?: ($brief->client_user_name ?? 'شركة');
+                    return [
+                        'id' => (string) $brief->id,
+                        'title' => $brief->title,
+                        'category' => $brief->category,
+                        'providerType' => $brief->targeted_freelancer_id ? 'specific' : ($brief->provider_type ?? 'public'),
+                        'description' => $brief->description,
+                        'clientId' => (string) $brief->client_id,
+                        'client' => $displayName,
+                        'clientName' => $brief->client_user_name ?? 'عميل',
+                        'companyName' => $brief->company_business_name,
+                        'avatar' => $brief->client_avatar,
+                        'city' => $brief->client_city,
+                        'industry' => $brief->company_industry,
+                        'companyDescription' => $brief->company_description,
+                        'createdAt' => $brief->created_at?->locale('ar')->diffForHumans(),
+                    ];
+                })
                 ->all();
         };
 

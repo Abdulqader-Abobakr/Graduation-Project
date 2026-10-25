@@ -16,6 +16,13 @@ import {
 } from 'lucide-react';
 import { useForm } from '@inertiajs/react';
 
+const normalizeImageUrl = (url) => {
+  if (!url || typeof url !== 'string') return null;
+  let normalized = url.replace(/\/storage\/v1\/s3\/\.\.\/object\/public\//g, '/storage/v1/object/public/');
+  normalized = normalized.replace(/\/s3\/\.\.\/object\/public\//g, '/object/public/');
+  return normalized;
+};
+
 export default function ProposalFormModal({
   isOpen = true,
   onClose,
@@ -23,18 +30,21 @@ export default function ProposalFormModal({
   briefId = null,
   chatId = null,
   clientName = '',
+  clientAvatar = null,
   clientRequest = '',
   initialData = null,
   onSuccess,
 }) {
   const isEditing = Boolean(proposalId);
   const resolvedTitle = initialData?.title || clientRequest || 'عرض سعر تنفيذ المشروع';
+  const parsedRev = parseInt(initialData?.revision_limit ?? '2', 10);
+  const defaultRevision = !isNaN(parsedRev) && parsedRev >= 0 && parsedRev <= 3 ? String(parsedRev) : '2';
 
   const { data, setData, post, put, processing, errors, reset } = useForm({
     title: resolvedTitle,
     price: initialData?.price || '',
     timeline: initialData?.timeline || 'أسبوعين',
-    revision_limit: String(initialData?.revision_limit ?? '2'),
+    revision_limit: defaultRevision,
     validity: initialData?.validity || '7 أيام',
     additional_terms: initialData?.additional_terms || '',
     milestones:
@@ -117,19 +127,19 @@ export default function ProposalFormModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col border border-slate-100 animate-in zoom-in-95 duration-200 text-start overflow-hidden my-auto"
+        className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col border border-slate-100 animate-in zoom-in-95 duration-200 text-start overflow-hidden my-auto"
       >
         {/* Header */}
-        <header className="px-6 md:px-8 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 shrink-0">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-[#2a7de1]/10 text-[#2a7de1] flex items-center justify-center shrink-0">
-              <FileText size={22} />
+        <header className="px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#2a7de1]/10 text-[#2a7de1] flex items-center justify-center shrink-0">
+              <FileText size={18} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-800">
+              <h2 className="text-base sm:text-lg font-semibold text-slate-800">
                 {isEditing ? 'تعديل عرض السعر' : 'إنشاء عرض سعر جديد'}
               </h2>
-              <p className="text-sm text-slate-500 font-medium">
+              <p className="text-xs text-slate-500 font-medium">
                 {isEditing
                   ? 'عدّل تفاصيل ومراحل العرض قبل أن يقبله العميل'
                   : 'حدد مراحل العمل، التكلفة، والمدة لتقديم عرض احترافي'}
@@ -139,27 +149,43 @@ export default function ProposalFormModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-10 h-10 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 flex items-center justify-center transition-colors shadow-2xs cursor-pointer shrink-0"
+            className="w-9 h-9 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 flex items-center justify-center transition-colors shadow-2xs cursor-pointer shrink-0"
             title="إغلاق"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </header>
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
-          <div className="p-6 md:p-8 overflow-y-auto space-y-7 flex-1">
+          <div className="p-5 sm:p-6 overflow-y-auto space-y-5 flex-1">
             {/* Context Card: Harmonious Client & Request details */}
             {(clientName || clientRequest) && (
-              <div className="bg-slate-50/90 border border-slate-200/80 rounded-2xl p-4.5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Client item */}
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-11 h-11 rounded-xl bg-blue-100/80 text-[#2a7de1] flex items-center justify-center font-bold shrink-0">
-                    <User size={20} />
+              <div className="bg-slate-50/90 border border-slate-200/80 rounded-xl p-3.5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Client item with Logo */}
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 overflow-hidden flex items-center justify-center shadow-2xs shrink-0">
+                    {normalizeImageUrl(clientAvatar) ? (
+                      <img
+                        src={normalizeImageUrl(clientAvatar)}
+                        alt={clientName || 'العميل'}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          if (e.currentTarget.parentElement) {
+                            e.currentTarget.parentElement.classList.add('bg-blue-50');
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-[#2a7de1] to-[#1f6fd4] text-white flex items-center justify-center font-semibold text-sm">
+                        {clientName ? clientName.charAt(0) : 'ع'}
+                      </div>
+                    )}
                   </div>
                   <div className="min-w-0">
-                    <span className="text-xs font-semibold text-slate-400 block mb-0.5">العميل</span>
-                    <h4 className="text-sm sm:text-base font-bold text-slate-800 truncate">
+                    <span className="text-[11px] font-medium text-slate-500 block mb-0.5">العميل</span>
+                    <h4 className="text-xs sm:text-sm font-semibold text-slate-800 truncate">
                       {clientName || 'عميل منصة صلة'}
                     </h4>
                   </div>
@@ -167,13 +193,13 @@ export default function ProposalFormModal({
 
                 {/* Request item */}
                 {clientRequest && (
-                  <div className="flex items-center gap-3 sm:border-r sm:border-slate-200/80 sm:pr-4 min-w-0">
-                    <div className="w-11 h-11 rounded-xl bg-blue-100/80 text-[#2a7de1] flex items-center justify-center font-bold shrink-0">
-                      <FileText size={20} />
+                  <div className="flex items-center gap-2.5 sm:border-r sm:border-slate-200/80 sm:pr-3 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-blue-100/80 text-[#2a7de1] flex items-center justify-center font-semibold shrink-0">
+                      <FileText size={18} />
                     </div>
                     <div className="min-w-0">
-                      <span className="text-xs font-semibold text-slate-400 block mb-0.5">طلب المشروع</span>
-                      <h4 className="text-sm sm:text-base font-bold text-slate-800 truncate" title={clientRequest}>
+                      <span className="text-[11px] font-medium text-slate-500 block mb-0.5">طلب المشروع</span>
+                      <h4 className="text-xs sm:text-sm font-semibold text-slate-800 truncate" title={clientRequest}>
                         {clientRequest}
                       </h4>
                     </div>
@@ -187,11 +213,11 @@ export default function ProposalFormModal({
               <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
                 <div className="flex items-center gap-2.5 text-slate-800">
                   <Layers size={18} className="text-[#2a7de1]" />
-                  <h3 className="text-sm sm:text-base font-bold">
+                  <h3 className="text-sm sm:text-base font-semibold">
                     مراحل العمل والتسليمات
                   </h3>
                 </div>
-                <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
+                <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
                   {data.milestones.length} مراحل
                 </span>
               </div>
@@ -210,7 +236,7 @@ export default function ProposalFormModal({
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <span className="text-xs sm:text-sm font-bold text-[#2a7de1] bg-blue-50 px-3 py-1 rounded-lg border border-blue-100">
+                          <span className="text-xs sm:text-sm font-semibold text-[#2a7de1] bg-blue-50 px-3 py-1 rounded-lg border border-blue-100">
                             المرحلة {index + 1}
                           </span>
                           <span className="text-xs font-semibold text-slate-500">
@@ -233,10 +259,12 @@ export default function ProposalFormModal({
                         <input
                           type="text"
                           required
+                          maxLength={255}
+                          pattern="^[\u0600-\u06FFa-zA-Z0-9\s\-_.,()'\u0022\/]+$"
                           placeholder="عنوان المرحلة (مثال: تسليم النماذج الأولية والتصاميم)"
                           value={milestone.title}
                           onChange={(e) => updateMilestone(milestone.id, 'title', e.target.value)}
-                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2a7de1]/20 focus:border-[#2a7de1] transition-all text-sm font-bold text-slate-800 placeholder-slate-400"
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2a7de1]/20 focus:border-[#2a7de1] transition-all text-sm font-semibold text-slate-800 placeholder-slate-400"
                         />
                         {errors[`milestones.${index}.title`] && (
                           <p className="text-red-500 text-xs font-medium">
@@ -268,7 +296,7 @@ export default function ProposalFormModal({
               <button
                 type="button"
                 onClick={addMilestone}
-                className="w-full py-3.5 border border-dashed border-slate-300 rounded-xl text-slate-700 font-bold text-sm hover:border-[#2a7de1] hover:text-[#2a7de1] hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3.5 border border-dashed border-slate-300 rounded-xl text-slate-700 font-semibold text-sm hover:border-[#2a7de1] hover:text-[#2a7de1] hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Plus size={18} />
                 <span>إضافة مرحلة تسليم جديدة</span>
@@ -280,22 +308,27 @@ export default function ProposalFormModal({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-3 border-t border-slate-100">
               {/* Cost */}
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-800 block">
+                <label className="text-sm font-semibold text-slate-800 block">
                   السعر الإجمالي (ر.ي) <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute inset-s-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 pointer-events-none">
+                  <span className="absolute inset-s-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400 pointer-events-none">
                     ر.ي
                   </span>
                   <input
-                    type="number"
-                    min="1"
-                    step="any"
+                    type="text"
+                    inputMode="decimal"
                     required
+                    pattern="^[1-9]\d*(\.\d{1,2})?$"
                     value={data.price}
-                    onChange={(e) => setData('price', e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '' || /^\d+(\.\d{0,2})?$/.test(val)) {
+                        setData('price', val);
+                      }
+                    }}
                     placeholder="0.00"
-                    className="w-full ps-11 pe-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2a7de1]/20 focus:border-[#2a7de1] transition-all font-bold text-slate-900 text-base"
+                    className="w-full ps-11 pe-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2a7de1]/20 focus:border-[#2a7de1] transition-all font-semibold text-slate-900 text-base"
                   />
                 </div>
                 {errors.price && <p className="text-red-500 text-xs font-medium">{errors.price}</p>}
@@ -303,7 +336,7 @@ export default function ProposalFormModal({
 
               {/* Timeline */}
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-800 block">
+                <label className="text-sm font-semibold text-slate-800 block">
                   مدة التنفيذ والتسليم <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -311,7 +344,7 @@ export default function ProposalFormModal({
                     required
                     value={data.timeline}
                     onChange={(e) => setData('timeline', e.target.value)}
-                    className="w-full ps-11 pe-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2a7de1]/20 focus:border-[#2a7de1] transition-all text-sm font-bold text-slate-800 cursor-pointer"
+                    className="w-full ps-11 pe-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2a7de1]/20 focus:border-[#2a7de1] transition-all text-sm font-semibold text-slate-800 cursor-pointer"
                   >
                     <option value="">اختر مدة التنفيذ</option>
                     <option value="3 أيام">3 أيام</option>
@@ -327,18 +360,32 @@ export default function ProposalFormModal({
 
               {/* Revision Limit */}
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-800 block">
+                <label className="text-sm font-semibold text-slate-800 block">
                   عدد التعديلات المسموحة <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <input
                     type="number"
                     min="0"
+                    max="3"
+                    step="1"
                     required
                     value={data.revision_limit}
-                    onChange={(e) => setData('revision_limit', e.target.value)}
-                    placeholder="0"
-                    className="w-full ps-11 pe-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2a7de1]/20 focus:border-[#2a7de1] transition-all font-bold text-slate-900 text-base"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '' || /^[0-3]$/.test(val)) {
+                        setData('revision_limit', val);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (
+                        !['0', '1', '2', '3', 'Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key) &&
+                        !e.ctrlKey && !e.metaKey
+                      ) {
+                        e.preventDefault();
+                      }
+                    }}
+                    className="w-full ps-11 pe-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2a7de1]/20 focus:border-[#2a7de1] transition-all font-semibold text-slate-900 text-base"
                   />
                   <RotateCcw size={18} className="absolute inset-s-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 </div>
@@ -347,14 +394,14 @@ export default function ProposalFormModal({
 
               {/* Validity */}
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-800 block">
+                <label className="text-sm font-semibold text-slate-800 block">
                   صلاحية العرض <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <select
                     value={data.validity}
                     onChange={(e) => setData('validity', e.target.value)}
-                    className="w-full ps-11 pe-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2a7de1]/20 focus:border-[#2a7de1] transition-all text-sm font-bold text-slate-800 cursor-pointer"
+                    className="w-full ps-11 pe-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2a7de1]/20 focus:border-[#2a7de1] transition-all text-sm font-semibold text-slate-800 cursor-pointer"
                   >
                     <option value="3 أيام">3 أيام</option>
                     <option value="7 أيام">7 أيام</option>
@@ -369,7 +416,7 @@ export default function ProposalFormModal({
 
             {/* Section 3: Additional Terms */}
             <div className="space-y-2 pt-3 border-t border-slate-100">
-              <label className="text-sm font-bold text-slate-800 block">
+              <label className="text-sm font-semibold text-slate-800 block">
                 الشروط الإضافية والملاحظات <span className="text-slate-400 font-normal text-xs">(اختياري)</span>
               </label>
               <textarea
@@ -396,9 +443,15 @@ export default function ProposalFormModal({
             <button
               type="submit"
               disabled={processing}
-              className="w-full sm:w-auto px-8 py-3 bg-[#2a7de1] hover:bg-[#1f6fd4] text-white rounded-xl text-sm sm:text-base font-bold shadow-md shadow-blue-500/20 hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer text-center"
+              className="w-full sm:w-auto px-8 py-3 bg-[#2a7de1] hover:bg-[#1f6fd4] text-white rounded-xl text-sm sm:text-base font-semibold shadow-md shadow-blue-500/20 hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer text-center"
             >
-              {processing ? 'جاري الحفظ...' : isEditing ? 'حفظ التعديلات' : 'إرسال العرض للعميل'}
+              {processing
+                ? isEditing
+                  ? 'جاري الحفظ...'
+                  : 'جاري الإرسال...'
+                : isEditing
+                ? 'حفظ التعديلات'
+                : 'إرسال العرض للعميل'}
             </button>
           </footer>
         </form>

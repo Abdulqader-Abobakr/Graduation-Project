@@ -5,6 +5,7 @@ import ProposalFormModal from '../Components/ProposalFormModal';
 export default function CreateProposal({
   chatId,
   clientName,
+  clientAvatar,
   clientRequest,
   proposalId,
   initialData,
@@ -25,6 +26,7 @@ export default function CreateProposal({
         chatId={chatId}
         proposalId={proposalId}
         clientName={clientName}
+        clientAvatar={clientAvatar}
         clientRequest={clientRequest}
         initialData={initialData}
       />
