@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { usePage, router, Link } from '@inertiajs/react';
+import ProposalFormModal from '../Components/ProposalFormModal';
 import {
     ArrowRight,
     Clock,
@@ -15,6 +16,7 @@ export default function Chat({ conversation, conversations = [], search = '' }) 
     const [conversationsList, setConversationsList] = useState(conversations || []);
     const [body, setBody] = useState('');
     const [deletingId, setDeletingId] = useState(null);
+    const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
     const prevCountRef = useRef((conversation?.messages || []).length);
@@ -311,13 +313,14 @@ export default function Chat({ conversation, conversations = [], search = '' }) 
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                        <Link
-                            href={`/freelancer/proposals/create/${conversation.id}`}
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-primary/10 px-3.5 py-2 text-xs font-bold text-primary hover:bg-primary/20 transition-colors"
+                        <button
+                            type="button"
+                            onClick={() => setIsProposalModalOpen(true)}
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-primary/10 px-3.5 py-2 text-xs font-bold text-primary hover:bg-primary/20 transition-colors cursor-pointer"
                         >
                             <FileText size={14} />
                             <span>تقديم عرض سعر</span>
-                        </Link>
+                        </button>
                     </div>
                 </header>
 
@@ -516,6 +519,26 @@ export default function Chat({ conversation, conversations = [], search = '' }) 
                             : 'عندما يبدأ أحد العملاء مناقشة عرضك أو يتواصل معك، ستظهر المحادثة المباشرة هنا.'}
                     </p>
                 </div>
+            )}
+
+            {/* Proposal Form Modal */}
+            {isProposalModalOpen && conversation && (
+                <ProposalFormModal
+                    isOpen={true}
+                    onClose={() => setIsProposalModalOpen(false)}
+                    chatId={conversation.id}
+                    clientName={clientName}
+                    clientRequest={requestTitle}
+                    initialData={{
+                        title: requestTitle || '',
+                        price: '',
+                        timeline: 'أسبوعين',
+                        revision_limit: '2',
+                        validity: '7 أيام',
+                        additional_terms: '',
+                        milestones: [{ id: Date.now(), title: '', description: '' }],
+                    }}
+                />
             )}
         </div>
     );

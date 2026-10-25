@@ -85,7 +85,7 @@ export default function ProposalDetailsModal({ proposal, onClose, onAccept, onCh
 
             {/* Milestones */}
             <div className="space-y-4 pt-4">
-              <label className="text-sm font-bold text-slate-700 block mb-4">مراحل العمل والتسليمات (Milestones)</label>
+              <label className="text-sm font-bold text-slate-700 block mb-4">مراحل العمل والتسليمات</label>
 
               {milestones.length > 0 ? (
                 <div className="space-y-4">

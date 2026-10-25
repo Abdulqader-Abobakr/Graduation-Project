@@ -26,24 +26,26 @@ class DashboardController extends Controller
         $startOfMonth = now()->startOfMonth()->toDateTimeString();
         $startOfNextMonth = now()->startOfMonth()->addMonth()->toDateTimeString();
 
-        $stats = \Illuminate\Support\Facades\DB::selectOne("
-            SELECT 
-                (SELECT COUNT(*) FROM sila_p.projects WHERE freelancer_id = :uid1 AND status = 'active') as active_projects,
-                (SELECT COALESCE(SUM(t.amount), 0) 
-                   FROM sila_p.transactions t 
-                   JOIN sila_p.projects p ON t.project_id = p.id 
-                  WHERE p.freelancer_id = :uid2 
-                    AND t.verification_status = 'verified' 
-                    AND t.created_at >= :start 
-                    AND t.created_at < :end) as monthly_earnings,
-                (SELECT COALESCE(SUM(unread_count), 0) FROM sila_p.conversations WHERE freelancer_id = :uid3) as unread_messages
-        ", [
-            'uid1'  => $user->id,
-            'uid2'  => $user->id,
-            'uid3'  => $user->id,
-            'start' => $startOfMonth,
-            'end'   => $startOfNextMonth,
-        ]);
+        $stats = Cache::remember("freelancer_dashboard_stats_{$user->id}", 30, function () use ($user, $startOfMonth, $startOfNextMonth) {
+            return \Illuminate\Support\Facades\DB::selectOne("
+                SELECT 
+                    (SELECT COUNT(*) FROM sila_p.projects WHERE freelancer_id = :uid1 AND status = 'active') as active_projects,
+                    (SELECT COALESCE(SUM(t.amount), 0) 
+                       FROM sila_p.transactions t 
+                       JOIN sila_p.projects p ON t.project_id = p.id 
+                      WHERE p.freelancer_id = :uid2 
+                        AND t.verification_status = 'verified' 
+                        AND t.created_at >= :start 
+                        AND t.created_at < :end) as monthly_earnings,
+                    (SELECT COALESCE(SUM(unread_count), 0) FROM sila_p.conversations WHERE freelancer_id = :uid3) as unread_messages
+            ", [
+                'uid1'  => $user->id,
+                'uid2'  => $user->id,
+                'uid3'  => $user->id,
+                'start' => $startOfMonth,
+                'end'   => $startOfNextMonth,
+            ]);
+        });
 
         $statsData = [
             'activeProjects'      => (string) ($stats->active_projects ?? 0),

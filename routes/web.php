@@ -102,6 +102,7 @@ Route::prefix('freelancer')
         Route::put('/proposals/{id}', [Freelancer\ProposalController::class, 'update'])->name('freelancer.proposals.update');
         Route::delete('/proposals/{id}', [Freelancer\ProposalController::class, 'destroy'])->name('freelancer.proposals.destroy');
         Route::get('/proposals/create-for-brief/{briefId}', [Freelancer\ProposalController::class, 'createForBrief'])->name('freelancer.proposals.createForBrief');
+        Route::post('/proposals/brief/{briefId}', [Freelancer\ProposalController::class, 'storeForBrief'])->name('freelancer.proposals.storeForBrief');
         Route::get('/proposals/create/{chatId}', [Freelancer\ProposalController::class, 'create'])->name('freelancer.proposals.create');
         Route::post('/proposals/create/{chatId}', [Freelancer\ProposalController::class, 'store'])->name('freelancer.proposals.store');
         Route::post('/orders/{id}/accept', [Freelancer\ProposalController::class, 'acceptOrder'])->name('freelancer.orders.accept');

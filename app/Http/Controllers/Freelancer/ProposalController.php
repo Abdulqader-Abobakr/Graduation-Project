@@ -196,12 +196,17 @@ class ProposalController extends Controller
                             'title'           => $proposal->title,
                             'status'          => $proposal->status,
                             'totalPrice'      => number_format($proposal->price ?? 0),
+                            'price'           => (string) ($proposal->price ?? ''),
+                            'revision_limit'  => (string) ($proposal->revision_limit ?? '2'),
                             'revisions'       => $proposal->revision_limit
                                 ? "{$proposal->revision_limit} تعديلات"
                                 : 'غير محدد',
                             'timeline'        => $proposal->timeline ?? 'أسبوعين',
                             'validity'        => $proposal->validity ?? '7 أيام',
+                            'additional_terms'=> $proposal->additional_terms ?? '',
                             'additionalTerms' => $proposal->additional_terms ?? null,
+                            'clientName'      => $proposal->resolved_client_name ?? 'عميل',
+                            'clientRequest'   => $proposal->title ?? 'طلب غير محدد',
                             'milestones'      => $proposal->milestones->map(fn($item) => [
                                 'id'          => (string) $item->id,
                                 'title'       => $item->title,
@@ -303,7 +308,7 @@ class ProposalController extends Controller
 
         DB::transaction(function () use ($proposal, $validated) {
             $proposal->update([
-                'title' => $validated['title'],
+                'title' => !empty($validated['title']) ? $validated['title'] : ($proposal->title ?? 'عرض سعر'),
                 'price' => $validated['price'],
                 'timeline' => $validated['timeline'],
                 'revision_limit' => $validated['revision_limit'],
@@ -382,6 +387,35 @@ class ProposalController extends Controller
     }
 
     /**
+     * Directly store a proposal for an open brief without full page navigation.
+     */
+    public function storeForBrief(Request $request, $briefId)
+    {
+        $user = $request->user();
+        $brief = Brief::findOrFail($briefId);
+
+        abort_unless(
+            $brief->status === 'open'
+                && ($brief->targeted_freelancer_id === null || $brief->targeted_freelancer_id === $user->id),
+            403
+        );
+
+        $chat = Conversation::firstOrCreate(
+            [
+                'brief_id' => $brief->id,
+                'client_id' => $brief->client_id,
+                'freelancer_id' => $user->id,
+            ],
+            [
+                'subject' => $brief->title,
+                'unread_count' => 0,
+            ]
+        );
+
+        return $this->store($request, $chat->id);
+    }
+
+    /**
      * Store a newly submitted proposal.
      */
     public function store(Request $request, $chatId)
@@ -392,7 +426,7 @@ class ProposalController extends Controller
         abort_if($chat->freelancer_id !== $user->id, 403);
 
         $request->validate([
-            'title'                        => 'required|string|max:255',
+            'title'                        => 'nullable|string|max:255',
             'price'                        => 'required|numeric|min:1',
             'timeline'                     => 'required|string|max:100',
             'revision_limit'               => 'required|integer',
@@ -403,10 +437,12 @@ class ProposalController extends Controller
             'milestones.*.description'     => 'required|string',
         ]);
 
+        $title = $request->title ?: ($chat->subject ?? 'عرض سعر');
+
         $proposal = Proposal::create([
             'freelancer_id'    => $user->id,
             'brief_id'         => $chat->brief_id ?? null,
-            'title'            => $request->title,
+            'title'            => $title,
             'price'            => $request->price,
             'timeline'         => $request->timeline,
             'revision_limit'   => $request->revision_limit,
@@ -454,7 +490,7 @@ class ProposalController extends Controller
     private function validatedProposal(Request $request): array
     {
         return $request->validate([
-            'title' => 'required|string|max:255',
+            'title' => 'nullable|string|max:255',
             'price' => 'required|numeric|min:1',
             'timeline' => 'required|string|max:100',
             'revision_limit' => 'required|integer',

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import ProposalDetailsModal from '../Components/ProposalDetailsModal';
+import ProposalFormModal from '../Components/ProposalFormModal';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import {
   MessageSquare,
@@ -47,6 +48,7 @@ export default function Proposals({
   useEffect(() => {
     let active = true;
     const pollProposals = async () => {
+      if (document.hidden) return;
       try {
         const searchParam = typeof window !== 'undefined' ? window.location.search : '';
         const res = await fetch(`/freelancer/proposals-poll${searchParam}`, {
@@ -68,8 +70,7 @@ export default function Proposals({
       }
     };
 
-    pollProposals();
-    const interval = setInterval(pollProposals, 2000);
+    const interval = setInterval(pollProposals, 5000);
     return () => {
       active = false;
       clearInterval(interval);
@@ -93,6 +94,47 @@ export default function Proposals({
   const [activeTab, setActiveTab] = useState(initialTab);
   const [selectedProposal, setSelectedProposal] = useState(null);
   const [proposalActionId, setProposalActionId] = useState(null);
+  const [activeProposalModal, setActiveProposalModal] = useState(null);
+
+  const handleOpenCreateProposal = (order) => {
+    setActiveProposalModal({
+      mode: 'create',
+      briefId: order.id,
+      clientName: order.client,
+      clientRequest: order.service,
+      initialData: {
+        title: order.service || '',
+        price: '',
+        timeline: 'أسبوعين',
+        revision_limit: '2',
+        validity: '7 أيام',
+        additional_terms: '',
+        milestones: [{ id: Date.now(), title: '', description: '' }],
+      },
+    });
+  };
+
+  const handleOpenEditProposal = (prop) => {
+    const raw = prop.rawProposal || {};
+    setActiveProposalModal({
+      mode: 'edit',
+      proposalId: prop.id,
+      clientName: prop.client,
+      clientRequest: prop.title,
+      initialData: {
+        title: raw.title || prop.title || '',
+        price: raw.price || String(prop.amount || '').replace(/,/g, ''),
+        timeline: raw.timeline || 'أسبوعين',
+        revision_limit: String(raw.revision_limit ?? '2'),
+        validity: raw.validity || '7 أيام',
+        additional_terms: raw.additional_terms || raw.additionalTerms || '',
+        milestones:
+          raw.milestones && raw.milestones.length > 0
+            ? raw.milestones
+            : [{ id: Date.now(), title: '', description: '' }],
+      },
+    });
+  };
 
   // Sync tab if URL changes (e.g. back/forward navigation)
   useEffect(() => {
@@ -146,7 +188,7 @@ export default function Proposals({
     <div className="p-8 space-y-8" dir="rtl">
       {/* SECTION 1: Page Header */}
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-800 mb-2">العروض والطلبات</h1>
+        <h1 className="text-3xl font-bold text-slate-800 mb-2">العروض والطلبات المباشرة</h1>
         <p className="text-slate-500 max-w-2xl">
           أدر طلبات العملاء، تفاوض على المشاريع، وتابع عروض الأسعار المرسلة.
         </p>
@@ -155,7 +197,7 @@ export default function Proposals({
       {/* SECTION 2: Tabs Navigation */}
       <div className="flex border-b border-gray-200 mb-8 gap-8 overflow-x-auto whitespace-nowrap">
         <TabButton
-          label={`الطلبات (${safeDirectOrders.length})`}
+          label={`الطلبات المباشرة (${safeDirectOrders.length})`}
           active={activeTab === 'direct'}
           onClick={() => switchTab('direct')}
         />
@@ -171,15 +213,6 @@ export default function Proposals({
         {/* A. Content for "الطلبات" (Orders) */}
         {activeTab === 'direct' && (
           <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex items-center gap-3 mb-6">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <span className="w-1.5 h-6 bg-[#2a7de1] rounded-full"></span>
-                الطلبات
-              </h2>
-              <span className="bg-blue-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                جديد
-              </span>
-            </div>
             {safeDirectOrders.length > 0 ? (
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 {safeDirectOrders.map((order) => (
@@ -188,6 +221,7 @@ export default function Proposals({
                     {...order}
                     onAccept={() => handleAcceptOrder(order.id)}
                     onReject={() => handleRejectOrder(order.id)}
+                    onCreateProposal={() => handleOpenCreateProposal(order)}
                     processing={processing}
                   />
                 ))}
@@ -203,12 +237,6 @@ export default function Proposals({
         {/* C. Content for "العروض المرسلة" (Sent Proposals) */}
         {activeTab === 'sent' && (
           <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <span className="w-1.5 h-6 bg-[#2a7de1] rounded-full"></span>
-                العروض المرسلة مؤخراً
-              </h2>
-            </div>
             {safeSentProposals.length > 0 ? (
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden divide-y divide-gray-100">
                 {safeSentProposals.map((prop) => (
@@ -216,7 +244,7 @@ export default function Proposals({
                     key={prop.id}
                     {...prop}
                     onViewDetails={() => setSelectedProposal(prop.rawProposal || prop)}
-                    onEdit={() => router.visit(`/freelancer/proposals/${prop.id}/edit`)}
+                    onEdit={() => handleOpenEditProposal(prop)}
                     onDelete={() => deleteProposal(prop.id)}
                     actionProcessing={proposalActionId === prop.id}
                   />
@@ -236,6 +264,20 @@ export default function Proposals({
         <ProposalDetailsModal
           proposal={selectedProposal}
           onClose={() => setSelectedProposal(null)}
+        />
+      )}
+
+      {/* Modal display for creating or editing a proposal */}
+      {activeProposalModal && (
+        <ProposalFormModal
+          isOpen={true}
+          onClose={() => setActiveProposalModal(null)}
+          proposalId={activeProposalModal.proposalId}
+          briefId={activeProposalModal.briefId}
+          chatId={activeProposalModal.chatId}
+          clientName={activeProposalModal.clientName}
+          clientRequest={activeProposalModal.clientRequest}
+          initialData={activeProposalModal.initialData}
         />
       )}
     </div>
@@ -290,7 +332,7 @@ const NegotiationCard = ({ id, client, service, lastMsg, time, status, statusCol
   </div>
 );
 
-const DirectOrderCard = ({ id, isBrief, client, service, category, description, price, delivery, onAccept, onReject, processing }) => (
+const DirectOrderCard = ({ id, isBrief, client, service, category, description, price, delivery, onAccept, onReject, onCreateProposal, processing }) => (
   <div className="flex h-full flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
     <div className="flex items-start justify-between gap-4">
       <div className="min-w-0 flex-1">
@@ -334,12 +376,13 @@ const DirectOrderCard = ({ id, isBrief, client, service, category, description, 
 
       <div className="flex items-center gap-3">
         {isBrief ? (
-          <Link
-            href={`/freelancer/proposals/create-for-brief/${id}`}
-            className="flex-1 rounded-xl bg-[#2a7de1] py-2.5 text-center text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#1f6fd4]"
+          <button
+            type="button"
+            onClick={onCreateProposal}
+            className="flex-1 rounded-xl bg-[#2a7de1] py-2.5 text-center text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#1f6fd4] cursor-pointer"
           >
             إرسال عرض سعر
-          </Link>
+          </button>
         ) : (
           <button
             onClick={onAccept}

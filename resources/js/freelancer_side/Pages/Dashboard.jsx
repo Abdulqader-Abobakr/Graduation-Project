@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from '@inertiajs/react';
+import ProposalFormModal from '../Components/ProposalFormModal';
 import {
   CheckCircle2,
   Clock,
@@ -28,6 +29,7 @@ export default function Dashboard({
   openBriefs
 }) {
   const [briefsList, setBriefsList] = useState(() => (Array.isArray(openBriefs) ? openBriefs : []));
+  const [selectedBriefForProposal, setSelectedBriefForProposal] = useState(null);
 
   useEffect(() => {
     if (Array.isArray(openBriefs)) {
@@ -38,6 +40,7 @@ export default function Dashboard({
   useEffect(() => {
     let active = true;
     const pollBriefs = async () => {
+      if (document.hidden) return;
       try {
         const searchParam = typeof window !== 'undefined' ? window.location.search : '';
         const res = await fetch(`/freelancer/briefs-poll${searchParam}`, {
@@ -54,8 +57,7 @@ export default function Dashboard({
       }
     };
 
-    pollBriefs();
-    const interval = setInterval(pollBriefs, 2000);
+    const interval = setInterval(pollBriefs, 5000);
     return () => {
       active = false;
       clearInterval(interval);
@@ -175,12 +177,13 @@ export default function Dashboard({
 
                 <div className="mt-auto flex items-center justify-between gap-4 border-t border-slate-100 pt-4">
                   <p className="text-xs font-medium text-slate-400">{brief.createdAt}</p>
-                  <Link
-                    href={`/freelancer/proposals/create-for-brief/${brief.id}`}
-                    className="rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#1f6fd4]"
+                  <button
+                    type="button"
+                    onClick={() => setSelectedBriefForProposal(brief)}
+                    className="rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#1f6fd4] cursor-pointer"
                   >
                     إرسال عرض
-                  </Link>
+                  </button>
                 </div>
               </article>
             ))}
@@ -191,6 +194,26 @@ export default function Dashboard({
           </div>
         )}
       </section>
+
+      {/* Proposal Modal */}
+      {selectedBriefForProposal && (
+        <ProposalFormModal
+          isOpen={true}
+          onClose={() => setSelectedBriefForProposal(null)}
+          briefId={selectedBriefForProposal.id}
+          clientName={selectedBriefForProposal.clientName}
+          clientRequest={selectedBriefForProposal.title}
+          initialData={{
+            title: selectedBriefForProposal.title || '',
+            price: '',
+            timeline: 'أسبوعين',
+            revision_limit: '2',
+            validity: '7 أيام',
+            additional_terms: '',
+            milestones: [{ id: Date.now(), title: '', description: '' }],
+          }}
+        />
+      )}
 
     </div>
   );
