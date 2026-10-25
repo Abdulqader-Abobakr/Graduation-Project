@@ -9,7 +9,7 @@ import {
   Info
 } from 'lucide-react';
 
-export default function ProposalDetailsModal({ proposal, onClose, onAccept, onChat, onDeny, processing = false }) {
+export default function ProposalDetailsModal({ proposal, onClose, onAccept, onChat, onDeny, onViewFreelancer, processing = false }) {
   useEffect(() => {
     if (!proposal) return undefined;
     const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
@@ -54,6 +54,27 @@ export default function ProposalDetailsModal({ proposal, onClose, onAccept, onCh
               <FileText size={18} className="text-[#2a7de1]" />
               <h2 className="text-sm font-bold uppercase tracking-wider">تفاصيل العرض والمراحل</h2>
             </div>
+
+            {proposal.freelancerName && (
+              <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500 font-semibold">مقدم العرض:</span>
+                  {onViewFreelancer ? (
+                    <button
+                      type="button"
+                      onClick={() => onViewFreelancer(proposal.freelancerId || proposal.freelancer_id || proposal.freelancer?.id)}
+                      className="text-sm font-bold text-primary hover:underline cursor-pointer flex items-center gap-1.5"
+                      title="عرض الملف الشخصي للمستقل"
+                    >
+                      <span>{proposal.freelancerName}</span>
+                      <span className="text-xs text-slate-400 font-normal">(عرض الملف الشخصي)</span>
+                    </button>
+                  ) : (
+                    <span className="text-sm font-bold text-slate-800">{proposal.freelancerName}</span>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="text-sm font-bold text-slate-700 block mb-2">عنوان العرض</label>

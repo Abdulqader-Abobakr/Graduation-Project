@@ -1,9 +1,26 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { User } from 'lucide-react';
 import CreateRequestModal from '../components/CreateRequestModal';
+import FreelancerProfileModal from '../components/FreelancerProfileModal';
 
 export default function ExplorePage({ freelancers = [], onSubmit, search = '', activeFilter = 'all' }) {
     const [selectedFreelancer, setSelectedFreelancer] = useState(null);
+    const [viewingProfile, setViewingProfile] = useState(null);
+
+    useEffect(() => {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const targetId = params.get('freelancer');
+            if (targetId) {
+                const existing = freelancers.find(
+                    (f) => String(f.id) === String(targetId) || String(f.userId) === String(targetId)
+                );
+                setViewingProfile(existing || targetId);
+            }
+        } catch (_) {
+            // ignore
+        }
+    }, [freelancers]);
 
     const filteredFreelancers = useMemo(() => {
         const q = search.trim().toLowerCase();
@@ -38,7 +55,12 @@ export default function ExplorePage({ freelancers = [], onSubmit, search = '', a
                             className="rounded-2xl border border-[#e6e4de] bg-white p-5 shadow-sm"
                         >
                             <div className="flex items-center gap-3 mb-4">
-                                <div className="w-12 h-12 rounded-full bg-[#e9f2ff] overflow-hidden flex items-center justify-center text-primary font-bold">
+                                <button
+                                    type="button"
+                                    onClick={() => setViewingProfile(freelancer)}
+                                    className="w-12 h-12 rounded-full bg-[#e9f2ff] overflow-hidden flex items-center justify-center text-primary font-bold transition-transform hover:scale-105 cursor-pointer shrink-0"
+                                    title="عرض الملف الشخصي للمستقل"
+                                >
                                     {freelancer.avatar ? (
                                         <img
                                             src={freelancer.avatar}
@@ -48,10 +70,17 @@ export default function ExplorePage({ freelancers = [], onSubmit, search = '', a
                                     ) : (
                                         <User size={20} />
                                     )}
-                                </div>
+                                </button>
                                 <div className="min-w-0">
-                                    <h2 className="font-bold text-[#28251d] truncate">{freelancer.name}</h2>
-                                    <p className="text-xs text-[#7a7974] truncate">
+                                    <button
+                                        type="button"
+                                        onClick={() => setViewingProfile(freelancer)}
+                                        className="font-bold text-[#28251d] truncate hover:text-primary transition-colors text-right cursor-pointer block w-full text-base"
+                                        title="عرض الملف الشخصي للمستقل"
+                                    >
+                                        {freelancer.name}
+                                    </button>
+                                    <p className="text-xs text-[#7a7974] truncate mt-0.5">
                                         {freelancer.jobTitle || 'مستقل محترف'}
                                     </p>
                                 </div>
@@ -91,6 +120,16 @@ export default function ExplorePage({ freelancers = [], onSubmit, search = '', a
                 onClose={() => setSelectedFreelancer(null)}
                 onSubmit={(request) => onSubmit(request, null, () => setSelectedFreelancer(null))}
                 fixedFreelancer={selectedFreelancer}
+            />
+
+            <FreelancerProfileModal
+                isOpen={Boolean(viewingProfile)}
+                freelancer={viewingProfile}
+                onClose={() => setViewingProfile(null)}
+                onRequestService={(fl) => {
+                    setViewingProfile(null);
+                    setSelectedFreelancer(fl);
+                }}
             />
         </div>
     );

@@ -98,6 +98,7 @@ class BriefController extends Controller
                     'createdAt' => $brief->created_at?->toISOString(),
                     'proposals' => $brief->proposals->map(fn($proposal) => [
                         'id' => (string) $proposal->id,
+                        'freelancerId' => (string) $proposal->freelancer_id,
                         'freelancerName' => $proposal->freelancer_name ?? 'مستقل',
                         'title' => $proposal->title,
                         'price' => (float) $proposal->price,
@@ -127,6 +128,7 @@ class BriefController extends Controller
             ->where('sila_p.projects.client_id', $request->user()->id)
             ->select([
                 'sila_p.projects.id',
+                'sila_p.projects.freelancer_id',
                 'sila_p.projects.title',
                 'sila_p.projects.status',
                 'sila_p.projects.created_at',
@@ -135,10 +137,11 @@ class BriefController extends Controller
             ->orderByDesc('sila_p.projects.created_at')
             ->get()
             ->map(fn(Project $project) => [
-                'id'     => (string) $project->id,
-                'title'  => $project->title,
-                'status' => $project->status,
-                'client' => $project->freelancer_name ?? 'مستقل',
+                'id'           => (string) $project->id,
+                'freelancerId' => (string) $project->freelancer_id,
+                'title'        => $project->title,
+                'status'       => $project->status,
+                'client'       => $project->freelancer_name ?? 'مستقل',
             ])
             ->all();
     }
@@ -153,24 +156,124 @@ class BriefController extends Controller
                     'sila_p.freelancers.*',
                     'u.user_name as user_name',
                     'u.avatar_path as user_avatar_path',
+                    'u.city as user_city',
+                    'u.created_at as user_created_at',
                     DB::raw('(SELECT p.title FROM sila_p.portfolios p WHERE p.freelancer_id = sila_p.freelancers.id LIMIT 1) as first_portfolio_title'),
+                    DB::raw("(SELECT COUNT(*) FROM sila_p.projects pr WHERE pr.freelancer_id = u.id AND pr.status = 'completed') as completed_projects_count"),
                 ])
+                ->with(['portfolios:id,freelancer_id,title,marketing_domain,images'])
                 ->orderByDesc('sila_p.freelancers.created_at')
                 ->get()
                 ->map(fn(Freelancer $freelancer) => [
                     'id' => (string) $freelancer->user_id,
+                    'freelancer_id' => (string) $freelancer->id,
                     'name' => $freelancer->user_name ?? 'مستقل',
                     'avatar' => $freelancer->user_avatar_path,
+                    'city' => $freelancer->user_city,
                     'jobTitle' => $freelancer->job_title,
                     'bio' => $freelancer->bio,
+                    'joinedAt' => $freelancer->user_created_at ? Carbon::parse($freelancer->user_created_at)->diffForHumans() : null,
+                    'completedProjectsCount' => (int) ($freelancer->completed_projects_count ?? 0),
                     'industries' => array_values(array_unique(array_merge(
                         $freelancer->experienced_sectors ?? [],
                         $freelancer->marketing_specialties ?? [],
                     ))),
+                    'marketing_specialties' => $freelancer->marketing_specialties ?? [],
+                    'experienced_sectors' => $freelancer->experienced_sectors ?? [],
                     'portfolio' => $freelancer->first_portfolio_title,
+                    'portfolios' => $freelancer->portfolios->map(fn($p) => [
+                        'id' => (string) $p->id,
+                        'title' => $p->title,
+                        'marketing_domain' => $p->marketing_domain,
+                        'images' => $p->images ?? [],
+                    ])->values()->all(),
                 ])
                 ->all();
         });
+    }
+
+    public function showFreelancer(Request $request, string $id)
+    {
+        $freelancer = Freelancer::query()
+            ->join('sila_p.users as u', 'sila_p.freelancers.user_id', '=', 'u.id')
+            ->where('u.role', 'freelancer')
+            ->where(function ($query) use ($id) {
+                $query->where('sila_p.freelancers.user_id', $id)
+                    ->orWhere('sila_p.freelancers.id', $id)
+                    ->orWhere('u.id', $id);
+            })
+            ->select([
+                'sila_p.freelancers.*',
+                'u.user_name as user_name',
+                'u.avatar_path as user_avatar_path',
+                'u.city as user_city',
+                'u.created_at as user_created_at',
+                DB::raw('(SELECT p.title FROM sila_p.portfolios p WHERE p.freelancer_id = sila_p.freelancers.id LIMIT 1) as first_portfolio_title'),
+                DB::raw("(SELECT COUNT(*) FROM sila_p.projects pr WHERE pr.freelancer_id = u.id AND pr.status = 'completed') as completed_projects_count"),
+            ])
+            ->with(['portfolios:id,freelancer_id,title,marketing_domain,images'])
+            ->first();
+
+        if (! $freelancer) {
+            $user = User::where('id', $id)->where('role', 'freelancer')->first();
+            if (! $user) {
+                abort(404, 'المستقل غير موجود.');
+            }
+
+            $data = [
+                'id' => (string) $user->id,
+                'freelancer_id' => null,
+                'name' => $user->user_name ?? 'مستقل',
+                'avatar' => $user->avatar_path,
+                'city' => $user->city,
+                'jobTitle' => null,
+                'bio' => null,
+                'joinedAt' => $user->created_at?->diffForHumans(),
+                'completedProjectsCount' => 0,
+                'industries' => [],
+                'marketing_specialties' => [],
+                'experienced_sectors' => [],
+                'portfolio' => null,
+                'portfolios' => [],
+            ];
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json($data);
+            }
+
+            return redirect()->route('company.dashboard', ['tab' => 'explore', 'freelancer' => $id]);
+        }
+
+        $data = [
+            'id' => (string) $freelancer->user_id,
+            'freelancer_id' => (string) $freelancer->id,
+            'name' => $freelancer->user_name ?? 'مستقل',
+            'avatar' => $freelancer->user_avatar_path,
+            'city' => $freelancer->user_city,
+            'jobTitle' => $freelancer->job_title,
+            'bio' => $freelancer->bio,
+            'joinedAt' => $freelancer->user_created_at ? Carbon::parse($freelancer->user_created_at)->diffForHumans() : null,
+            'completedProjectsCount' => (int) ($freelancer->completed_projects_count ?? 0),
+            'industries' => array_values(array_unique(array_merge(
+                $freelancer->experienced_sectors ?? [],
+                $freelancer->marketing_specialties ?? [],
+            ))),
+            'marketing_specialties' => $freelancer->marketing_specialties ?? [],
+            'experienced_sectors' => $freelancer->experienced_sectors ?? [],
+            'portfolio' => $freelancer->first_portfolio_title,
+            'portfolios' => $freelancer->portfolios->map(fn($p) => [
+                'id' => (string) $p->id,
+                'title' => $p->title,
+                'marketing_domain' => $p->marketing_domain,
+                'images' => $p->images ?? [],
+            ])->values()->all(),
+        ];
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json($data);
+        }
+
+        return redirect()->route('company.dashboard', ['tab' => 'explore', 'freelancer' => $data['id']]);
     }
 
     private function freelancersData(): array

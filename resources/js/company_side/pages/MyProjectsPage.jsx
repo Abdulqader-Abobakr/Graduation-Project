@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Plus, FolderOpen, Clock, CheckCircle2, CreditCard, AlertCircle } from 'lucide-react';
 import { router } from '@inertiajs/react';
+import FreelancerProfileModal from '../components/FreelancerProfileModal';
 
 export default function MyProjectsPage({
     projects = [],
@@ -8,6 +9,8 @@ export default function MyProjectsPage({
     search = '',
     activeFilter = 'all',
 }) {
+    const [viewingFreelancerId, setViewingFreelancerId] = useState(null);
+
     const filteredProjects = useMemo(() => {
         const q = search.trim().toLowerCase();
 
@@ -103,8 +106,20 @@ export default function MyProjectsPage({
                                 <div className="flex items-start justify-between gap-4">
                                     <div>
                                         <h2 className="text-lg font-bold text-[#28251d]">{project.title}</h2>
-                                        <p className="mt-1 text-sm text-[#7a7974]">
-                                            العميل: {project.client}
+                                        <p className="mt-1 text-sm text-[#7a7974] flex items-center gap-1.5 flex-wrap">
+                                            <span>المستقل:</span>
+                                            {project.freelancerId ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setViewingFreelancerId(project.freelancerId)}
+                                                    className="font-bold text-primary hover:underline cursor-pointer"
+                                                    title="عرض الملف الشخصي للمستقل"
+                                                >
+                                                    {project.client}
+                                                </button>
+                                            ) : (
+                                                <span className="font-semibold text-[#28251d]">{project.client}</span>
+                                            )}
                                         </p>
                                     </div>
                                     <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${config.pillClass}`}>
@@ -162,6 +177,12 @@ export default function MyProjectsPage({
                     )}
                 </div>
             )}
+
+            <FreelancerProfileModal
+                isOpen={Boolean(viewingFreelancerId)}
+                freelancer={viewingFreelancerId}
+                onClose={() => setViewingFreelancerId(null)}
+            />
         </div>
     );
 }

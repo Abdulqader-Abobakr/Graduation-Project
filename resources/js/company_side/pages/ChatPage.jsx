@@ -8,6 +8,7 @@ import {
     Send,
     Trash2,
 } from 'lucide-react';
+import FreelancerProfileModal from '../components/FreelancerProfileModal';
 
 export default function ChatPage({ conversation, conversations = [], search = '' }) {
     const { auth } = usePage().props;
@@ -15,6 +16,7 @@ export default function ChatPage({ conversation, conversations = [], search = ''
     const [conversationsList, setConversationsList] = useState(conversations || []);
     const [body, setBody] = useState('');
     const [deletingId, setDeletingId] = useState(null);
+    const [viewingFreelancerId, setViewingFreelancerId] = useState(null);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
     const prevCountRef = useRef((conversation?.messages || []).length);
@@ -252,6 +254,9 @@ export default function ChatPage({ conversation, conversations = [], search = ''
     }, [conversationsList, conversation?.id, search]);
 
     // Active conversation details
+    const activeFreelancerId = typeof conversation?.freelancer === 'object'
+        ? conversation.freelancer?.id
+        : conversation?.freelancer_id;
     const freelancerName = typeof conversation?.freelancer === 'object'
         ? conversation.freelancer?.name || conversation.freelancer?.user_name || 'مستقل'
         : conversation?.freelancer || 'مستقل';
@@ -282,32 +287,39 @@ export default function ChatPage({ conversation, conversations = [], search = ''
 
                         <div className="h-6 w-px bg-[#e6e4de] shrink-0" />
 
-                        {/* Freelancer Avatar */}
-                        {freelancerAvatar ? (
-                            <img
-                                src={freelancerAvatar}
-                                alt={freelancerName}
-                                className="w-10 h-10 rounded-full object-cover ring-2 ring-primary/20 shrink-0"
-                            />
-                        ) : (
-                            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm ring-2 ring-primary/20 shrink-0">
-                                {freelancerName.charAt(0).toUpperCase()}
-                            </div>
-                        )}
-
-                        {/* Freelancer Name & Request Title */}
-                        <div className="min-w-0">
-                            <h1 className="text-base font-bold text-[#28251d] truncate">
-                                {freelancerName}
-                            </h1>
-
-                            {requestTitle && (
-                                <p className="text-xs text-[#7a7974] font-medium truncate mt-0.5 flex items-center gap-1">
-                                    <FileText size={12} className="text-primary shrink-0" />
-                                    <span>الطلب: {requestTitle}</span>
-                                </p>
+                        {/* Freelancer Avatar & Name (Clickable) */}
+                        <button
+                            type="button"
+                            onClick={() => activeFreelancerId && setViewingFreelancerId(activeFreelancerId)}
+                            disabled={!activeFreelancerId}
+                            className="flex items-center gap-3 text-right group cursor-pointer disabled:cursor-default"
+                            title={activeFreelancerId ? 'عرض الملف الشخصي للمستقل' : undefined}
+                        >
+                            {freelancerAvatar ? (
+                                <img
+                                    src={freelancerAvatar}
+                                    alt={freelancerName}
+                                    className="w-10 h-10 rounded-full object-cover ring-2 ring-primary/20 group-hover:ring-primary transition-all shrink-0"
+                                />
+                            ) : (
+                                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm ring-2 ring-primary/20 group-hover:ring-primary transition-all shrink-0">
+                                    {freelancerName.charAt(0).toUpperCase()}
+                                </div>
                             )}
-                        </div>
+
+                            <div className="min-w-0">
+                                <h1 className="text-base font-bold text-[#28251d] group-hover:text-primary transition-colors truncate">
+                                    {freelancerName}
+                                </h1>
+
+                                {requestTitle && (
+                                    <p className="text-xs text-[#7a7974] font-medium truncate mt-0.5 flex items-center gap-1">
+                                        <FileText size={12} className="text-primary shrink-0" />
+                                        <span>الطلب: {requestTitle}</span>
+                                    </p>
+                                )}
+                            </div>
+                        </button>
                     </div>
                 </header>
 
@@ -379,6 +391,12 @@ export default function ChatPage({ conversation, conversations = [], search = ''
                         <span>إرسال</span>
                     </button>
                 </form>
+
+                <FreelancerProfileModal
+                    isOpen={Boolean(viewingFreelancerId)}
+                    freelancer={viewingFreelancerId}
+                    onClose={() => setViewingFreelancerId(null)}
+                />
             </div>
         );
     }
@@ -406,6 +424,7 @@ export default function ChatPage({ conversation, conversations = [], search = ''
             {filteredConversations.length > 0 ? (
                 <div className="space-y-3">
                     {filteredConversations.map((conv) => {
+                        const convFreelancerId = conv.freelancer?.id;
                         const convName = conv.freelancer?.name || 'مستقل';
                         const convAvatar = conv.freelancer?.avatar;
                         const convTitle = conv.requestTitle || conv.subject || '';
@@ -426,17 +445,29 @@ export default function ChatPage({ conversation, conversations = [], search = ''
                             >
                                 <div className="flex items-center gap-4 min-w-0">
                                     {/* Freelancer Avatar */}
-                                    {convAvatar ? (
-                                        <img
-                                            src={convAvatar}
-                                            alt={convName}
-                                            className="w-12 h-12 rounded-full object-cover ring-2 ring-primary/20 shrink-0"
-                                        />
-                                    ) : (
-                                        <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-base shrink-0">
-                                            {convName.charAt(0).toUpperCase()}
-                                        </div>
-                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            if (convFreelancerId) {
+                                                e.stopPropagation();
+                                                setViewingFreelancerId(convFreelancerId);
+                                            }
+                                        }}
+                                        className="shrink-0 transition-transform hover:scale-105 cursor-pointer"
+                                        title={convFreelancerId ? 'عرض الملف الشخصي للمستقل' : undefined}
+                                    >
+                                        {convAvatar ? (
+                                            <img
+                                                src={convAvatar}
+                                                alt={convName}
+                                                className="w-12 h-12 rounded-full object-cover ring-2 ring-primary/20"
+                                            />
+                                        ) : (
+                                            <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-base shrink-0">
+                                                {convName.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
+                                    </button>
 
                                     {/* Info */}
                                     <div className="min-w-0 text-right">
@@ -507,6 +538,12 @@ export default function ChatPage({ conversation, conversations = [], search = ''
                     </p>
                 </div>
             )}
+
+            <FreelancerProfileModal
+                isOpen={Boolean(viewingFreelancerId)}
+                freelancer={viewingFreelancerId}
+                onClose={() => setViewingFreelancerId(null)}
+            />
         </div>
     );
 }

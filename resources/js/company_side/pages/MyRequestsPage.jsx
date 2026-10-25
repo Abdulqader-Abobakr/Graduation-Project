@@ -3,6 +3,7 @@ import { Bell, ChevronDown, ClipboardList, Edit3, Plus, Trash2 } from 'lucide-re
 import { router } from '@inertiajs/react';
 import CreateRequestModal from '../components/CreateRequestModal';
 import ProposalDetailsModal from '../../freelancer_side/Components/ProposalDetailsModal';
+import FreelancerProfileModal from '../components/FreelancerProfileModal';
 
 const categoryLabels = {
     marketing_services: 'خدمات التسويق',
@@ -30,6 +31,7 @@ export default function MyRequestsPage({
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [editingRequest, setEditingRequest] = useState(null);
     const [selectedProposal, setSelectedProposal] = useState(null);
+    const [viewingFreelancerId, setViewingFreelancerId] = useState(null);
     const [expandedRequests, setExpandedRequests] = useState(new Set());
     const [readProposalNotifications, setReadProposalNotifications] = useState(new Set());
     const [processingProposal, setProcessingProposal] = useState(false);
@@ -181,9 +183,22 @@ export default function MyRequestsPage({
                                             >
                                                 <div>
                                                     <p className="text-sm font-bold text-[#28251d]">{proposal.title}</p>
-                                                    <p className="mt-1 text-xs text-[#7a7974]">
-                                                        {proposal.freelancerName} · {Number(proposal.price || 0).toLocaleString('ar-YE')} ر.ي
-                                                    </p>
+                                                    <div className="mt-1 flex items-center gap-1.5 text-xs text-[#7a7974] flex-wrap">
+                                                        {proposal.freelancerId ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setViewingFreelancerId(proposal.freelancerId)}
+                                                                className="font-bold text-primary hover:underline cursor-pointer"
+                                                                title="عرض الملف الشخصي للمستقل"
+                                                            >
+                                                                {proposal.freelancerName}
+                                                            </button>
+                                                        ) : (
+                                                            <span className="font-semibold text-[#28251d]">{proposal.freelancerName}</span>
+                                                        )}
+                                                        <span>·</span>
+                                                        <span>{Number(proposal.price || 0).toLocaleString('ar-YE')} ر.ي</span>
+                                                    </div>
                                                 </div>
                                                 <button
                                                     type="button"
@@ -257,6 +272,13 @@ export default function MyRequestsPage({
                 onAccept={selectedProposal ? () => postProposalAction('/company/proposals/:id/accept', selectedProposal.id, true) : undefined}
                 onChat={selectedProposal ? () => postProposalAction('/company/proposals/:id/chat', selectedProposal.id, true) : undefined}
                 onDeny={selectedProposal ? () => postProposalAction('/company/proposals/:id/deny', selectedProposal.id, true) : undefined}
+                onViewFreelancer={(id) => setViewingFreelancerId(id)}
+            />
+
+            <FreelancerProfileModal
+                isOpen={Boolean(viewingFreelancerId)}
+                freelancer={viewingFreelancerId}
+                onClose={() => setViewingFreelancerId(null)}
             />
         </div>
     );

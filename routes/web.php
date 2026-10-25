@@ -27,6 +27,8 @@ Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 Route::middleware(['auth', 'role:company'])->group(function () {
     Route::get('/company', [BriefController::class, 'index'])
         ->name('company.dashboard');
+    Route::get('/company/freelancers/{id}', [BriefController::class, 'showFreelancer'])
+        ->name('company.freelancers.show');
     Route::get('/company/profile', [ProfileController::class, 'show'])
         ->name('company.profile');
     Route::put('/company/profile', [ProfileController::class, 'update'])
