@@ -115,7 +115,7 @@ export default function MyRequestsPage({
         <div className="w-full max-w-5xl mx-auto">
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
-                <h1 className="text-2xl font-bold text-[#28251d]">طلباتي</h1>
+                <h1 className="text-2xl font-bold text-[#28251d]">الطلبات والعروض</h1>
                 <button
                     onClick={openCreateModal}
                     className="flex items-center gap-2 bg-primary text-white px-5 py-3 rounded-xl font-bold hover:bg-[#1b62c4] transition-colors shadow-sm cursor-pointer"

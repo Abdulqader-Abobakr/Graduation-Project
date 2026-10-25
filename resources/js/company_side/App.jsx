@@ -110,7 +110,7 @@ export default function App({
 
     const searchPlaceholder = pagePlaceholders[activePage] || pagePlaceholders.explore;
 
-    const pageTitle = activePage === 'requests' ? 'طلباتي'
+    const pageTitle = activePage === 'requests' ? 'الطلبات والعروض'
         : activePage === 'projects' ? 'مشاريعي'
             : activePage === 'chat' ? 'المحادثات'
                 : activePage === 'workspace' ? `مساحة العمل: ${workspaceProject?.title || ''}`

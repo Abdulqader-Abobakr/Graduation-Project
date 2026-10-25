@@ -50,7 +50,7 @@ export default function Sidebar({ activePage, onPageChange, isSidebarOpen }) {
 
             <nav className="flex-1 px-3 space-y-1 overflow-hidden">
                 <NavItem icon={<LayoutDashboard size={20} />} label="استكشف" href="/company?tab=explore" active={activePage === 'explore'} isSidebarOpen={isSidebarOpen} />
-                <NavItem icon={<ClipboardList size={20} />} label="طلباتي" href="/company?tab=requests" active={activePage === 'requests'} isSidebarOpen={isSidebarOpen} />
+                <NavItem icon={<ClipboardList size={20} />} label="الطلبات والعروض" href="/company?tab=requests" active={activePage === 'requests'} isSidebarOpen={isSidebarOpen} />
                 <NavItem icon={<FolderOpen size={20} />} label="مشاريعي" href="/company?tab=projects" active={activePage === 'projects'} isSidebarOpen={isSidebarOpen} />
                 <NavItem icon={<MessageSquare size={20} />} label="المحادثات" href="/company?tab=chat" badge={chatBadge} active={activePage === 'chat'} isSidebarOpen={isSidebarOpen} />
             </nav>
