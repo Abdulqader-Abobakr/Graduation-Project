@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useForm, usePage } from '@inertiajs/react';
+import TermsAndPrivacyModal from '../../Components/TermsAndPrivacyModal';
 
 // ==================== FORGOT PASSWORD MODAL ====================
 function ForgotPasswordModal({ isOpen, onClose }) {
@@ -188,6 +189,7 @@ function Login() {
 
     const [showPassword, setShowPassword] = useState(false);
     const [showForgotPassword, setShowForgotPassword] = useState(false);
+    const [showTermsModal, setShowTermsModal] = useState(false);
 
     // Sync remembered credentials on mount (from localStorage or encrypted server cookie props)
     useEffect(() => {
@@ -426,14 +428,23 @@ function Login() {
 
                     <p className="mt-6 text-center text-xs text-slate-400">
                         بتسجيل الدخول، أنت توافق على{' '}
-                        <button className="text-primary hover:underline">الشروط والأحكام</button>
-                        {' '}و{' '}
-                        <button className="text-primary hover:underline">سياسة الخصوصية</button>
+                        <button
+                            type="button"
+                            onClick={() => setShowTermsModal(true)}
+                            className="text-primary hover:underline font-medium cursor-pointer"
+                        >
+                            سياسة الاستخدام والخصوصية
+                        </button>
                     </p>
                 </div>
             </div>
 
             <ForgotPasswordModal isOpen={showForgotPassword} onClose={() => setShowForgotPassword(false)} />
+            <TermsAndPrivacyModal
+                isOpen={showTermsModal}
+                onClose={() => setShowTermsModal(false)}
+                requireDecision={false}
+            />
 
             <style>{`@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }`}</style>
         </>

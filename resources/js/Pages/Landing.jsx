@@ -1,7 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from '@inertiajs/react';
+import TermsAndPrivacyModal from '../Components/TermsAndPrivacyModal';
 
 function Landing() {
+  const [showTermsModal, setShowTermsModal] = useState(false);
+
   useEffect(() => {
     if (window.location.hash === '#signup') {
       window.location.href = '/register';
@@ -51,10 +54,6 @@ function Landing() {
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-6 sm:pt-12 pb-10 sm:pb-16">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           <div>
-            <div className="inline-block bg-[#ffb548]/10 border border-[#ffb548]/30 rounded-full px-4 py-2 text-xs sm:text-sm font-semibold text-primary uppercase tracking-wider mb-4 sm:mb-5">
-              منصة ربط الشركات بالمستقلين في خدمات ريادة الأعمال
-            </div>
-
             <h1 className="text-[2rem] sm:text-4xl lg:text-5xl font-extrabold text-slate-900 leading-tight">
               ابحث عن خبير يساعدك على
               <span className="block text-primary mt-1">تنمية مشروعك</span>
@@ -342,17 +341,29 @@ function Landing() {
               <div>
                 <h4 className="font-semibold text-slate-900 mb-4">الدعم</h4>
                 <ul className="space-y-2 text-sm text-slate-600">
-                  <li><a href="#" className="hover:text-primary transition">مركز المساعدة</a></li>
-                  <li><a href="#" className="hover:text-primary transition">تواصل معنا</a></li>
-                  <li><a href="#" className="hover:text-primary transition">الأسئلة الشائعة</a></li>
+                  <li>
+                    <a
+                      href="mailto:sila.platform.2026@gmail.com"
+                      className="hover:text-primary transition"
+                    >
+                      ايميل
+                    </a>
+                  </li>
                 </ul>
               </div>
 
               <div>
                 <h4 className="font-semibold text-slate-900 mb-4">القوانين</h4>
                 <ul className="space-y-2 text-sm text-slate-600">
-                  <li><a href="#" className="hover:text-primary transition">سياسة الخصوصية</a></li>
-                  <li><a href="#" className="hover:text-primary transition">شروط الاستخدام</a></li>
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => setShowTermsModal(true)}
+                      className="hover:text-primary transition cursor-pointer text-right"
+                    >
+                      سياسة الاستخدام والخصوصية
+                    </button>
+                  </li>
                 </ul>
               </div>
             </div>
@@ -363,6 +374,12 @@ function Landing() {
           </div>
         </div>
       </footer>
+
+      <TermsAndPrivacyModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        requireDecision={false}
+      />
     </div>
   );
 }

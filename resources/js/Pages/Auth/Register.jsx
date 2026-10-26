@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Link, useForm } from '@inertiajs/react';
+import { Link, router, useForm } from '@inertiajs/react';
+import TermsAndPrivacyModal from '../../Components/TermsAndPrivacyModal';
 
 // The 21 major Yemeni cities and governorates
 const YEMEN_CITIES = [
@@ -413,6 +414,18 @@ const StepIndicator = ({ step, stepData }) => {
 function Register() {
     const [step, setStep] = useState(0);
     const [accountType, setAccountType] = useState('');
+    const [hasAgreedToTerms, setHasAgreedToTerms] = useState(false);
+    const [showTermsModal, setShowTermsModal] = useState(true);
+    const [requireDecision, setRequireDecision] = useState(true);
+
+    const handleAcceptTerms = () => {
+        setHasAgreedToTerms(true);
+        setShowTermsModal(false);
+    };
+
+    const handleDeclineTerms = () => {
+        router.visit('/');
+    };
 
     const { data, setData, post, processing, errors: serverErrors, clearErrors } = useForm({
         companyName: '',
@@ -448,6 +461,12 @@ function Register() {
 
     const handleNext = (e) => {
         e.preventDefault();
+
+        if (!hasAgreedToTerms) {
+            setRequireDecision(true);
+            setShowTermsModal(true);
+            return;
+        }
 
         const newErrors = validateStep(step, data, accountType);
         if (Object.keys(newErrors).length > 0) {
@@ -512,6 +531,11 @@ function Register() {
                                         key={type.id}
                                         type="button"
                                         onClick={() => {
+                                            if (!hasAgreedToTerms) {
+                                                setRequireDecision(true);
+                                                setShowTermsModal(true);
+                                                return;
+                                            }
                                             setAccountType(type.id);
                                             setData('role', type.id);
                                             setStep(1);
@@ -537,6 +561,20 @@ function Register() {
                                     تسجيل الدخول
                                 </Link>
                             </div>
+
+                            <p className="mt-4 text-center text-xs text-slate-400">
+                                بالتسجيل، أنت توافق على{' '}
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setRequireDecision(!hasAgreedToTerms);
+                                        setShowTermsModal(true);
+                                    }}
+                                    className="text-primary hover:underline font-medium cursor-pointer"
+                                >
+                                    سياسة الاستخدام والخصوصية
+                                </button>
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -636,6 +674,20 @@ function Register() {
                             تسجيل الدخول
                         </Link>
                     </p>
+
+                    <p className="mt-3 text-center text-xs text-slate-400">
+                        بالتسجيل، أنت توافق على{' '}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setRequireDecision(!hasAgreedToTerms);
+                                setShowTermsModal(true);
+                            }}
+                            className="text-primary hover:underline font-medium cursor-pointer"
+                        >
+                            سياسة الاستخدام والخصوصية
+                        </button>
+                    </p>
                 </div>
             </div>
         );
@@ -656,6 +708,19 @@ function Register() {
 
                 {renderStepContent()}
             </div>
+
+            <TermsAndPrivacyModal
+                isOpen={showTermsModal}
+                onAccept={handleAcceptTerms}
+                onDecline={handleDeclineTerms}
+                onClose={() => {
+                    if (!requireDecision) {
+                        setShowTermsModal(false);
+                    }
+                }}
+                requireDecision={requireDecision}
+                hasAgreed={hasAgreedToTerms}
+            />
         </div>
     );
 }
