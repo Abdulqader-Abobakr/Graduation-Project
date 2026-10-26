@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Freelancer;
 
 use App\Http\Controllers\Controller;
+use App\Models\Conversation;
 use App\Models\Project;
 use App\Models\Deliverable;
 use Illuminate\Http\Request;
@@ -18,13 +19,15 @@ class ProjectController extends Controller
 
         $projects = Project::query()
             ->leftJoin('sila_p.users as client', 'sila_p.projects.client_id', '=', 'client.id')
+            ->leftJoin('sila_p.client_companies as comp', 'comp.user_id', '=', 'client.id')
             ->leftJoin('sila_p.proposals as prop_orig', 'prop_orig.project_id', '=', 'sila_p.projects.id')
             ->leftJoin('sila_p.proposals as prop_brief', 'prop_brief.brief_id', '=', 'sila_p.projects.brief_id')
             ->where('sila_p.projects.freelancer_id', auth()->id())
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($query) use ($search) {
                     $query->where('sila_p.projects.title', 'ilike', "%{$search}%")
-                        ->orWhere('client.user_name', 'ilike', "%{$search}%");
+                        ->orWhere('client.user_name', 'ilike', "%{$search}%")
+                        ->orWhere('comp.business_name', 'ilike', "%{$search}%");
                 });
             })
             ->select([
@@ -38,154 +41,234 @@ class ProjectController extends Controller
                 'sila_p.projects.created_at',
                 'sila_p.projects.updated_at',
                 'client.user_name as client_name',
+                'client.avatar_path as client_avatar',
+                'client.city as client_city',
+                'comp.business_name as company_name',
+                'comp.company_description as company_description',
                 \Illuminate\Support\Facades\DB::raw('COALESCE(prop_orig.price, prop_brief.price, 0) as resolved_price'),
             ])
             ->with([
-                'deliverables:id,project_id,title,status,file_path,external_link,created_at',
+                'deliverables:id,project_id,title,status,file_path,external_link,client_feedback,remaining_revisions,notes,created_at,updated_at',
             ])
             ->latest('sila_p.projects.updated_at')
             ->get();
 
-        $formattedProjects = $projects->map(function ($project) {
+        $clientIds = $projects->pluck('client_id')->filter()->unique();
+        $conversations = Conversation::where('freelancer_id', auth()->id())
+            ->whereIn('client_id', $clientIds)
+            ->latest('updated_at')
+            ->get()
+            ->keyBy('client_id');
+
+        $formattedProjects = $projects->map(function ($project) use ($conversations) {
             $totalTasks = $project->deliverables->count();
-            // Count 'approved' tasks AND 'submitted' tasks that actually have a file/link
             $completedTasks = $project->deliverables->filter(function ($d) {
-                if ($d->status === 'approved') return true;
-                if ($d->status === 'submitted' && (!empty($d->file_path) || !empty($d->external_link))) return true;
-                return false;
+                return $d->status === 'approved';
             })->count();
 
             $progress = $project->status === 'completed'
                 ? 100
                 : ($totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0);
 
-            return [
-                'id'              => (string) $project->id,
-                'clientName'      => $project->client_name ?? 'عميل',
-                'title'           => $project->title,
-                'status'          => $project->status,
-                'projectValue'    => number_format((float) ($project->resolved_price ?? 0), 0),
-                'progress'        => $progress,
-                'activeWorkspace' => $project->status !== 'completed',
-                'completionDate'  => $project->updated_at?->format('d M Y'),
-                // Map tasks properly to compute active vs locked
-                'tasks'           => (function () use ($project) {
-                    $tasks = [];
-                    $hasActive = false;
-                    foreach ($project->deliverables as $task) {
-                        $hasSubmission = !empty($task->file_path) || !empty($task->external_link);
+            $hasRevisionRequested = $project->deliverables->contains('status', 'revision_requested');
+            $hasAwaitingReview = $project->deliverables->contains(function ($d) {
+                return $d->status === 'submitted' && (!empty($d->file_path) || !empty($d->external_link));
+            });
 
-                        if ($task->status === 'approved') {
-                            $status = 'completed';
-                        } elseif ($task->status === 'revision_requested') {
-                            $status = 'active';
-                            $hasActive = true;
-                        } elseif ($task->status === 'submitted' && $hasSubmission) {
-                            $status = 'awaiting_review';
-                        } else {
-                            if (!$hasActive) {
-                                $status = 'active';
-                                $hasActive = true;
-                            } else {
-                                $status = 'locked';
-                            }
-                        }
+            $conversation = $conversations->get($project->client_id);
 
-                        $tasks[] = [
-                            'id'      => (string) $task->id,
-                            'title'   => $task->title,
-                            'status'  => $status,
-                            'dueDate' => null,
-                        ];
+            // Compute tasks with active/locked flow
+            $tasks = [];
+            $hasActive = false;
+            $activeTaskIndex = -1;
+            $activeTaskTitle = null;
+
+            foreach ($project->deliverables as $idx => $task) {
+                $hasSubmission = !empty($task->file_path) || !empty($task->external_link);
+
+                if ($task->status === 'approved') {
+                    $status = 'completed';
+                } elseif ($task->status === 'revision_requested') {
+                    $status = 'revision_requested';
+                    if (!$hasActive) {
+                        $hasActive = true;
+                        $activeTaskIndex = $idx;
+                        $activeTaskTitle = $task->title;
                     }
-                    return $tasks;
-                })(),
+                } elseif ($task->status === 'submitted' && $hasSubmission) {
+                    $status = 'awaiting_review';
+                } else {
+                    if (!$hasActive) {
+                        $status = 'active';
+                        $hasActive = true;
+                        $activeTaskIndex = $idx;
+                        $activeTaskTitle = $task->title;
+                    } else {
+                        $status = 'locked';
+                    }
+                }
+
+                $tasks[] = [
+                    'id'                 => (string) $task->id,
+                    'title'              => $task->title,
+                    'status'             => $status,
+                    'clientFeedback'     => $task->client_feedback,
+                    'remainingRevisions' => $task->remaining_revisions,
+                ];
+            }
+
+            return [
+                'id'                   => (string) $project->id,
+                'clientId'             => (string) $project->client_id,
+                'clientName'           => $project->company_name ?: ($project->client_name ?? 'شركة'),
+                'companyName'          => $project->company_name,
+                'companyDescription'   => $project->company_description,
+                'avatar'               => $project->client_avatar,
+                'city'                 => $project->client_city ?? 'اليمن',
+                'title'                => $project->title,
+                'status'               => $project->status,
+                'hasRevisionRequested' => $hasRevisionRequested,
+                'hasAwaitingReview'    => $hasAwaitingReview,
+                'projectValue'         => number_format((float) ($project->resolved_price ?? 0), 0),
+                'progress'             => $progress,
+                'activeWorkspace'      => $project->status !== 'completed',
+                'completionDate'       => $project->updated_at?->format('d M Y'),
+                'totalTasks'           => $totalTasks,
+                'completedTasks'       => $completedTasks,
+                'activeTaskIndex'      => $activeTaskIndex,
+                'activeTaskTitle'      => $activeTaskTitle,
+                'chatId'               => $conversation ? (string) $conversation->id : null,
+                'tasks'                => $tasks,
             ];
         });
 
         return Inertia::render('freelancer/MyProjects', [
             'pageTitle' => 'مشاريعي',
             'projects'  => $formattedProjects,
+            'search'    => $search,
         ]);
     }
 
     public function show($id)
     {
         $project = Project::with([
-            'deliverables'                => fn($q) => $q->select(['id', 'project_id', 'title', 'client_feedback', 'status', 'file_path', 'external_link', 'created_at'])->orderBy('created_at', 'asc'),
-            'originalProposal'            => fn($q) => $q->select(['id', 'project_id', 'title', 'price', 'revision_limit', 'timeline', 'validity', 'additional_terms']),
+            'deliverables' => fn($q) => $q->select([
+                'id',
+                'project_id',
+                'title',
+                'client_feedback',
+                'status',
+                'file_path',
+                'external_link',
+                'notes',
+                'remaining_revisions',
+                'created_at',
+                'updated_at'
+            ])->orderBy('created_at', 'asc'),
+            'originalProposal' => fn($q) => $q->select(['id', 'project_id', 'title', 'price', 'revision_limit', 'timeline', 'validity', 'additional_terms']),
             'originalProposal.milestones' => fn($q) => $q->select(['id', 'proposal_id', 'title', 'description', 'amount', 'status']),
-            'proposalViaBrief'            => fn($q) => $q->select(['id', 'brief_id', 'title', 'price', 'revision_limit', 'timeline', 'validity', 'additional_terms']),
+            'proposalViaBrief' => fn($q) => $q->select(['id', 'brief_id', 'title', 'price', 'revision_limit', 'timeline', 'validity', 'additional_terms']),
             'proposalViaBrief.milestones' => fn($q) => $q->select(['id', 'proposal_id', 'title', 'description', 'amount', 'status']),
-            'client:id,user_name',
+            'client:id,user_name,avatar_path,city',
+            'client.clientCompany:id,user_id,business_name,company_description,industry',
         ])->findOrFail($id);
 
         abort_if($project->freelancer_id !== auth()->id(), 403);
 
         $proposal = $project->originalProposal ?? $project->proposalViaBrief;
 
-        $projectData = [
-            'id'           => (string) $project->id,
-            'clientName'   => $project->client?->user_name ?? 'عميل',
-            'title'        => $project->title,
-            'status'       => $project->status,
-            'projectValue' => $proposal ? number_format($proposal->price, 0) : '0',
+        $conversation = Conversation::where('freelancer_id', auth()->id())
+            ->where('client_id', $project->client_id)
+            ->latest('updated_at')
+            ->first();
 
-            'tasks' => (function () use ($project) {
-                $tasks = [];
-                $hasActive = false;
-                foreach ($project->deliverables as $d) {
-                    $hasSubmission = !empty($d->file_path) || !empty($d->external_link);
+        $totalTasks = $project->deliverables->count();
+        $completedTasks = $project->deliverables->filter(fn($d) => $d->status === 'approved')->count();
+        $progress = $project->status === 'completed'
+            ? 100
+            : ($totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0);
 
-                    if ($d->status === 'approved') {
-                        $status = 'completed';
-                    } elseif ($d->status === 'revision_requested') {
-                        $status = 'active';
-                        $hasActive = true;
-                    } elseif ($d->status === 'submitted' && $hasSubmission) {
-                        $status = 'awaiting_review';
-                    } else {
-                        // Not submitted yet
-                        if (!$hasActive) {
-                            $status = 'active';
-                            $hasActive = true;
-                        } else {
-                            $status = 'locked';
-                        }
-                    }
+        // Map tasks
+        $tasks = [];
+        $hasActive = false;
+        $activeTaskId = null;
+        foreach ($project->deliverables as $d) {
+            $hasSubmission = !empty($d->file_path) || !empty($d->external_link);
 
-                    $tasks[] = [
-                        'id'          => (string) $d->id,
-                        'title'       => $d->title,
-                        'description' => $d->client_feedback ?? '',
-                        'status'      => $status,
-                        'dueDate'     => null,
-                    ];
+            if ($d->status === 'approved') {
+                $status = 'completed';
+            } elseif ($d->status === 'revision_requested') {
+                $status = 'revision_requested';
+                if (!$hasActive) {
+                    $hasActive = true;
+                    $activeTaskId = (string) $d->id;
                 }
-                return $tasks;
-            })(),
+            } elseif ($d->status === 'submitted' && $hasSubmission) {
+                $status = 'awaiting_review';
+            } else {
+                if (!$hasActive) {
+                    $status = 'active';
+                    $hasActive = true;
+                    $activeTaskId = (string) $d->id;
+                } else {
+                    $status = 'locked';
+                }
+            }
 
-            // ── Sidebar summary (aliased keys for the SummaryItem labels) ──
+            $tasks[] = [
+                'id'                 => (string) $d->id,
+                'title'              => $d->title,
+                'status'             => $status,
+                'rawStatus'          => $d->status,
+                'clientFeedback'     => $d->client_feedback,
+                'remainingRevisions' => $d->remaining_revisions,
+                'notes'              => $d->notes,
+                'filePath'           => $d->file_path,
+                'fileName'           => $d->file_path ? basename($d->file_path) : null,
+                'externalLink'       => $d->external_link,
+                'submittedAt'        => $d->updated_at ? $d->updated_at->locale('ar')->translatedFormat('d F Y - h:i a') : null,
+                'downloadUrl'        => $d->file_path ? route('freelancer.projects.deliverables.download', [$project->id, $d->id]) : null,
+                'viewUrl'            => $d->file_path ? route('freelancer.projects.deliverables.view', [$project->id, $d->id]) : null,
+            ];
+        }
+
+        $projectData = [
+            'id'             => (string) $project->id,
+            'title'          => $project->title,
+            'status'         => $project->status,
+            'projectValue'   => $proposal ? number_format($proposal->price, 0) : '0',
+            'progress'       => $progress,
+            'completedTasks' => $completedTasks,
+            'totalTasks'     => $totalTasks,
+            'activeTaskId'   => $activeTaskId,
+            'chatId'         => $conversation ? (string) $conversation->id : null,
+
+            'client' => [
+                'id'          => (string) $project->client_id,
+                'name'        => $project->client?->clientCompany?->business_name ?: ($project->client?->user_name ?? 'شركة'),
+                'companyName' => $project->client?->clientCompany?->business_name,
+                'avatar'      => $project->client?->avatar_path,
+                'city'        => $project->client?->city ?? 'اليمن',
+                'description' => $project->client?->clientCompany?->company_description,
+            ],
+
+            'tasks' => $tasks,
+
             'originalProposal' => $proposal ? [
                 'title'           => $proposal->title ?? $project->title,
                 'totalPrice'      => number_format($proposal->price, 0),
-                'revisions'       => $proposal->revision_limit
-                    ? "{$proposal->revision_limit} تعديلات"
-                    : 'غير محدد',
+                'revisions'       => $proposal->revision_limit ? "{$proposal->revision_limit} تعديلات" : 'غير محدد',
                 'timeline'        => $proposal->timeline ?? 'حسب الاتفاق',
                 'validity'        => $proposal->validity ?? '7 أيام',
                 'additionalTerms' => $proposal->additional_terms ?? null,
                 'milestones'      => $proposal->milestones->map(fn($m) => [
-                    'id'    => (string) $m->id,
-                    'title' => $m->title,
-                    // 'amount' and 'status' are available if needed by the modal
+                    'id'     => (string) $m->id,
+                    'title'  => $m->title,
                     'amount' => (float) $m->amount,
                     'status' => $m->status,
                 ]),
             ] : null,
 
-            // ── Raw proposal passed directly to ProposalDetailsModal ──
-            // The modal resolves its own fields from the raw DB attributes.
             'rawProposal' => $proposal ? [
                 'title'            => $proposal->title ?? $project->title,
                 'price'            => (float) $proposal->price,
@@ -198,7 +281,7 @@ class ProjectController extends Controller
                     'title'       => $m->title,
                     'description' => $m->description,
                     'amount'      => (float) $m->amount,
-                    'status' => $m->status,
+                    'status'      => $m->status,
                 ]),
             ] : null,
         ];
@@ -348,5 +431,34 @@ class ProjectController extends Controller
         }
 
         return redirect()->back()->with('success', 'تم إرسال التسليم للعميل بنجاح!');
+    }
+
+    /**
+     * Download deliverable file securely for freelancer.
+     */
+    public function downloadDeliverable(Request $request, Project $project, Deliverable $deliverable)
+    {
+        abort_if($project->freelancer_id !== auth()->id(), 403, 'غير مصرح لك.');
+        abort_if($deliverable->project_id !== $project->id, 404);
+        abort_if(!$deliverable->file_path, 404, 'الملف غير موجود.');
+
+        return Storage::disk('deliverables-files')->download(
+            $deliverable->file_path,
+            basename($deliverable->file_path)
+        );
+    }
+
+    /**
+     * View deliverable file securely (inline) for freelancer.
+     */
+    public function viewDeliverable(Request $request, Project $project, Deliverable $deliverable)
+    {
+        abort_if($project->freelancer_id !== auth()->id(), 403, 'غير مصرح لك.');
+        abort_if($deliverable->project_id !== $project->id, 404);
+        abort_if(!$deliverable->file_path, 404, 'الملف غير موجود.');
+
+        return Storage::disk('deliverables-files')->response(
+            $deliverable->file_path
+        );
     }
 }

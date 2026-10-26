@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
   LayoutDashboard,
@@ -27,7 +27,6 @@ const getNavItems = (chatBadge) => [
 const NavItem = ({ icon, label, href, collapsed, badge, active }) => (
   <Link
     href={href}
-    preserveScroll
     title={collapsed ? label : ''}
     className={`flex min-h-10 w-full text-right items-center ${
       collapsed ? 'justify-center mx-1' : 'gap-2 px-3 py-2.5'
@@ -63,6 +62,14 @@ export default function FreelancerLayout({ children }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const [search, setSearch] = useState('');
+  const mainContentRef = useRef(null);
+
+  useEffect(() => {
+    if (mainContentRef.current) {
+      mainContentRef.current.scrollTop = 0;
+    }
+    window.scrollTo(0, 0);
+  }, [currentPath]);
 
   useEffect(() => {
     const currentUrl = new URL(url, window.location.origin);
@@ -218,6 +225,7 @@ export default function FreelancerLayout({ children }) {
 
         {/* Scrollable Body / Children Content */}
         <div
+          ref={mainContentRef}
           className={`flex-1 ${
             isChatWithConversation
               ? 'flex flex-col min-h-0 overflow-hidden p-3 sm:p-5 w-full h-full'

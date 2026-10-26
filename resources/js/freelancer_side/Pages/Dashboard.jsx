@@ -66,7 +66,7 @@ export default function Dashboard({
       }
     };
 
-    const interval = setInterval(pollBriefs, 5000);
+    const interval = setInterval(pollBriefs, 15000);
     return () => {
       active = false;
       clearInterval(interval);
@@ -117,9 +117,6 @@ export default function Dashboard({
           </div>
           <Link
             href="/freelancer/projects"
-            prefetch="hover"
-            cacheFor="1m"
-            preserveScroll
             className="bg-white text-slate-700 px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-100 transition-colors shrink-0 flex items-center gap-2"
           >
             عرض المهام العاجلة ←

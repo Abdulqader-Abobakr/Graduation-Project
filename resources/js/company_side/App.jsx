@@ -54,6 +54,14 @@ export default function App({
     const [activeFilter, setActiveFilter] = useState('all');
     const [requestsList, setRequestsList] = useState(() => (Array.isArray(requests) ? requests : []));
     const pendingMutationsRef = useRef(0);
+    const mainContentRef = useRef(null);
+
+    useEffect(() => {
+        if (mainContentRef.current) {
+            mainContentRef.current.scrollTop = 0;
+        }
+        window.scrollTo(0, 0);
+    }, [activePage, url]);
 
     useEffect(() => {
         if (Array.isArray(requests) && pendingMutationsRef.current === 0) {
@@ -66,7 +74,7 @@ export default function App({
 
         let active = true;
         const pollRequests = async () => {
-            if (pendingMutationsRef.current > 0) return;
+            if (document.hidden || pendingMutationsRef.current > 0) return;
             try {
                 const res = await fetch('/company/requests-poll', {
                     headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
@@ -82,8 +90,7 @@ export default function App({
             }
         };
 
-        pollRequests();
-        const interval = setInterval(pollRequests, 2000);
+        const interval = setInterval(pollRequests, 12000);
         return () => {
             active = false;
             clearInterval(interval);
@@ -248,7 +255,7 @@ export default function App({
 
     // Handler for navigating back from workspace to projects list
     const handleBackFromWorkspace = () => {
-        router.visit('/company?tab=projects', { preserveScroll: true });
+        router.visit('/company?tab=projects');
     };
 
     return (
@@ -270,7 +277,7 @@ export default function App({
                     onFilterChange={setActiveFilter}
                 />
 
-                <div className={`flex-1 ${activePage === 'chat' && conversation ? 'flex flex-col min-h-0 overflow-hidden p-3 sm:p-5 w-full h-full' : 'overflow-y-auto p-8 max-w-7xl mx-auto w-full'}`}>
+                <div ref={mainContentRef} className={`flex-1 ${activePage === 'chat' && conversation ? 'flex flex-col min-h-0 overflow-hidden p-3 sm:p-5 w-full h-full' : 'overflow-y-auto p-8 max-w-7xl mx-auto w-full'}`}>
                     {activePage === 'requests' && (
                         <MyRequestsPage
                             requests={requestsList}

@@ -11,7 +11,6 @@ function NavItem({ icon, label, active = false, badge = null, isSidebarOpen = tr
     return (
         <Link
             href={href}
-            preserveScroll
             className={`${base} w-full text-right ${style}`}
             title={!isSidebarOpen ? label : ''}
         >

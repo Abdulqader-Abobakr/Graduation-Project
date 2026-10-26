@@ -111,6 +111,8 @@ Route::prefix('freelancer')
         Route::get('/projects/{id}', [Freelancer\ProjectController::class, 'show'])->name('freelancer.projects.show');
         Route::post('/projects/{id}/tasks/{taskId}', [Freelancer\ProjectController::class, 'submitTask'])->name('freelancer.projects.submitTask');
         Route::post('/projects/{id}/deliverables', [Freelancer\ProjectController::class, 'storeDeliverable'])->name('freelancer.projects.deliverables.store');
+        Route::get('/projects/{project}/deliverables/{deliverable}/download', [Freelancer\ProjectController::class, 'downloadDeliverable'])->name('freelancer.projects.deliverables.download');
+        Route::get('/projects/{project}/deliverables/{deliverable}/view', [Freelancer\ProjectController::class, 'viewDeliverable'])->name('freelancer.projects.deliverables.view');
         Route::get('/services', [Freelancer\ServiceController::class, 'index'])->name('freelancer.services');
         Route::post('/services/portfolio', [Freelancer\ServiceController::class, 'storePortfolio'])->name('freelancer.portfolio.store');
         Route::post('/services/portfolio/{id}', [Freelancer\ServiceController::class, 'updatePortfolio'])->name('freelancer.portfolio.update');

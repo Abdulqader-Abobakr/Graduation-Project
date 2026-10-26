@@ -78,7 +78,7 @@ export default function Proposals({
       }
     };
 
-    const interval = setInterval(pollProposals, 5000);
+    const interval = setInterval(pollProposals, 15000);
     return () => {
       active = false;
       clearInterval(interval);
@@ -342,8 +342,6 @@ const NegotiationCard = ({ id, client, service, lastMsg, time, status, statusCol
       </div>
       <Link
         href={`/freelancer/chat/${chatId || id}`}
-        prefetch="hover"
-        preserveScroll
         className="px-5 py-2.5 bg-white border border-gray-200 text-slate-600 rounded-xl font-semibold text-sm shadow-sm hover:bg-slate-50 hover:text-slate-700 transition-all flex items-center gap-2"
       >
         <MessageSquare size={16} />

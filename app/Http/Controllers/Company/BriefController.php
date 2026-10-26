@@ -36,13 +36,13 @@ class BriefController extends Controller
         $conversationsLoader = fn() => $this->conversationsListData($request);
 
         return Inertia::render('company_side/App', [
-            'requests' => $requestsLoader(),
-            'projects' => ($tab === 'projects' || $tab === 'workspace') ? $projectsLoader() : Inertia::defer($projectsLoader),
-            'exploreFreelancers' => $tab === 'explore' ? $exploreLoader() : Inertia::defer($exploreLoader),
-            'freelancers' => $freelancersLoader(),
-            'conversations' => $tab === 'chat' ? $conversationsLoader() : Inertia::defer($conversationsLoader),
-            'conversation' => $this->conversationData($request),
-            'workspaceProject' => $this->workspaceProjectData($request),
+            'requests'           => $tab === 'requests' ? $requestsLoader() : [],
+            'projects'           => ($tab === 'projects' || $tab === 'workspace') ? $projectsLoader() : [],
+            'exploreFreelancers' => $tab === 'explore' ? $exploreLoader() : [],
+            'freelancers'        => ($tab === 'explore' || $tab === 'requests') ? $freelancersLoader() : [],
+            'conversations'      => $tab === 'chat' ? $conversationsLoader() : [],
+            'conversation'       => $tab === 'chat' ? $this->conversationData($request) : null,
+            'workspaceProject'   => $tab === 'workspace' ? $this->workspaceProjectData($request) : null,
         ]);
     }
 
