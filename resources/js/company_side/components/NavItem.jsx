@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { LayoutDashboard, ClipboardList, FolderOpen, MessageSquare, Settings, LogOut } from 'lucide-react';
+import { Users, ClipboardList, FolderOpen, MessageSquare, Settings, LogOut } from 'lucide-react';
 
 function NavItem({ icon, label, active = false, badge = null, isSidebarOpen = true, href }) {
     const base = `flex min-h-10 items-center ${isSidebarOpen ? 'gap-2 px-3 py-2.5' : 'justify-center mx-1'} rounded-xl text-base transition-all group relative`;
@@ -48,7 +48,7 @@ export default function Sidebar({ activePage, onPageChange, isSidebarOpen }) {
             <div className={`h-px bg-white/20 mb-4 ${isSidebarOpen ? 'mx-6' : 'mx-4'}`} />
 
             <nav className="flex-1 px-3 space-y-1 overflow-hidden">
-                <NavItem icon={<LayoutDashboard size={20} />} label="استكشف" href="/company?tab=explore" active={activePage === 'explore'} isSidebarOpen={isSidebarOpen} />
+                <NavItem icon={<Users size={20} />} label="استكشف" href="/company?tab=explore" active={activePage === 'explore'} isSidebarOpen={isSidebarOpen} />
                 <NavItem icon={<ClipboardList size={20} />} label="الطلبات والعروض" href="/company?tab=requests" active={activePage === 'requests'} isSidebarOpen={isSidebarOpen} />
                 <NavItem icon={<FolderOpen size={20} />} label="مشاريعي" href="/company?tab=projects" active={activePage === 'projects'} isSidebarOpen={isSidebarOpen} />
                 <NavItem icon={<MessageSquare size={20} />} label="المحادثات" href="/company?tab=chat" badge={chatBadge} active={activePage === 'chat'} isSidebarOpen={isSidebarOpen} />

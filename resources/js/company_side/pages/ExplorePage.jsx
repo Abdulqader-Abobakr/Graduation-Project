@@ -44,7 +44,12 @@ export default function ExplorePage({ freelancers = [], onSubmit, search = '', a
     return (
         <div className="w-full max-w-5xl mx-auto">
             <div className="flex items-center justify-between gap-4 mb-6">
-                <h1 className="text-2xl font-bold text-[#28251d]">استكشف الفرص</h1>
+                <div>
+                    <h1 className="text-2xl font-bold text-[#28251d]">استكشف الخبراء</h1>
+                    <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
+                        تصفح نخبة من الكفاءات والخبراء المحترفين لاختيار الأنسب لتنفيذ مشاريعك وإنجاز أعمالك
+                    </p>
+                </div>
             </div>
 
             {filteredFreelancers.length > 0 ? (
@@ -59,7 +64,7 @@ export default function ExplorePage({ freelancers = [], onSubmit, search = '', a
                                     type="button"
                                     onClick={() => setViewingProfile(freelancer)}
                                     className="w-12 h-12 rounded-full bg-[#e9f2ff] overflow-hidden flex items-center justify-center text-primary font-bold transition-transform hover:scale-105 cursor-pointer shrink-0"
-                                    title="عرض الملف الشخصي للمستقل"
+                                    title="عرض الملف التعريفي"
                                 >
                                     {freelancer.avatar ? (
                                         <img
@@ -76,12 +81,12 @@ export default function ExplorePage({ freelancers = [], onSubmit, search = '', a
                                         type="button"
                                         onClick={() => setViewingProfile(freelancer)}
                                         className="font-bold text-[#28251d] truncate hover:text-primary transition-colors text-right cursor-pointer block w-full text-base"
-                                        title="عرض الملف الشخصي للمستقل"
+                                        title="عرض الملف التعريفي"
                                     >
                                         {freelancer.name}
                                     </button>
                                     <p className="text-xs text-[#7a7974] truncate mt-0.5">
-                                        {freelancer.jobTitle || 'مستقل محترف'}
+                                        {freelancer.jobTitle || 'خبير محترف'}
                                     </p>
                                 </div>
                             </div>
@@ -101,9 +106,9 @@ export default function ExplorePage({ freelancers = [], onSubmit, search = '', a
                             <button
                                 type="button"
                                 onClick={() => setSelectedFreelancer(freelancer)}
-                                className="mt-5 w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#1b62c4]"
+                                className="mt-5 w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#1b62c4] cursor-pointer"
                             >
-                                طلب خدمة من هذا المستقل
+                                طلب خدمة مباشرة
                             </button>
                         </article>
                     ))}

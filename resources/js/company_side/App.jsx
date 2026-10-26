@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { CheckCircle2, X } from 'lucide-react';
 import Sidebar from './components/NavItem';
 import Header from './components/Header.jsx';
 import ExplorePage from './pages/ExplorePage';
@@ -31,7 +32,10 @@ export default function App({
     conversations = EMPTY_ARRAY,
     workspaceProject = null,
 }) {
-    const { url } = usePage();
+    const { url, props: pageProps } = usePage();
+    const flash = pageProps?.flash ?? {};
+    const [showToast, setShowToast] = useState(false);
+    const lastFlashRef = useRef(null);
 
     const activePage = useMemo(() => {
         if (workspaceProject) return 'workspace';
@@ -55,6 +59,22 @@ export default function App({
     const [requestsList, setRequestsList] = useState(() => (Array.isArray(requests) ? requests : []));
     const pendingMutationsRef = useRef(0);
     const mainContentRef = useRef(null);
+
+    // Show floating toast when flash.success arrives - only once per unique message
+    useEffect(() => {
+        if (flash?.success && flash.success !== lastFlashRef.current) {
+            lastFlashRef.current = flash.success;
+            setShowToast(true);
+            const timer = setTimeout(() => setShowToast(false), 4500);
+            return () => clearTimeout(timer);
+        }
+    }, [flash?.success]);
+
+    // Reset filter & search when switching pages/tabs
+    useEffect(() => {
+        setActiveFilter('all');
+        setSearch('');
+    }, [activePage]);
 
     useEffect(() => {
         if (mainContentRef.current) {
@@ -108,7 +128,7 @@ export default function App({
     }, [activePage]);
 
     const pagePlaceholders = {
-        explore: 'ابحث عن مستقل أو تخصص أو خبرة...',
+        explore: 'ابحث عن خبير أو تخصص أو مهارة...',
         requests: 'ابحث في الطلبات أو الوصف أو الفئة...',
         projects: 'ابحث في المشاريع أو العملاء...',
         chat: 'ابحث في الرسائل أو المرسل...',
@@ -121,7 +141,7 @@ export default function App({
         : activePage === 'projects' ? 'مشاريعي'
             : activePage === 'chat' ? 'المحادثات'
                 : activePage === 'workspace' ? `مساحة العمل: ${workspaceProject?.title || ''}`
-                    : 'استكشف الباقات والخدمات';
+                    : 'استكشف الخبراء';
 
     // 👇 same logic as the old ExplorePage filter
     const industryOptions = useMemo(() => [
@@ -141,7 +161,6 @@ export default function App({
             label: 'الحالة',
             options: [
                 { value: 'all', label: 'الكل' },
-                { value: 'open', label: 'مفتوح' },
                 { value: 'with_proposals', label: 'لديه عروض' },
                 { value: 'no_proposals', label: 'بدون عروض' },
             ],
@@ -320,6 +339,34 @@ export default function App({
                     )}
                 </div>
             </main>
+
+            {/* Floating Toast Notification */}
+            <div
+                className={`fixed bottom-8 start-1/2 -translate-x-1/2 z-[100] transition-all duration-300 ease-out ${
+                    showToast && flash.success
+                        ? 'translate-y-0 opacity-100 scale-100'
+                        : 'translate-y-8 opacity-0 scale-95 pointer-events-none'
+                }`}
+            >
+                {flash.success && (
+                    <div className="bg-white border border-emerald-200 shadow-xl shadow-emerald-900/10 rounded-2xl p-4 pe-12 flex items-center gap-3 relative min-w-[320px]">
+                        <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                            <CheckCircle2 size={20} />
+                        </div>
+                        <div>
+                            <p className="text-xs sm:text-sm font-bold text-slate-800">تم بنجاح</p>
+                            <p className="text-xs text-slate-500 font-medium">{flash.success}</p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setShowToast(false)}
+                            className="absolute inset-e-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 cursor-pointer"
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

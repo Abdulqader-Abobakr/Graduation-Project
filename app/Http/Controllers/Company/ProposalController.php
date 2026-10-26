@@ -52,7 +52,7 @@ class ProposalController extends Controller
 
         BriefController::invalidateBriefCaches((string) $request->user()->id);
 
-        return redirect()->back()->with('success', 'تم قبول العرض. يرجى إتمام الدفع لبدء المشروع.');
+        return redirect()->route('company.dashboard', ['tab' => 'projects'])->with('success', 'تم قبول العرض بنجاح. يرجى إتمام الدفع لتفعيل المشروع وبدء العمل.');
     }
 
     public function deny(Request $request, string $id): RedirectResponse
