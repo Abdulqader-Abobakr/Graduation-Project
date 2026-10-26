@@ -293,6 +293,7 @@ export default function App({
                             projects={projects}
                             search={search}
                             activeFilter={activeFilter}
+                            onFilterChange={setActiveFilter}
                         />
                     )}
                     {activePage === 'chat' && (

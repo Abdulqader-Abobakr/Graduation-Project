@@ -49,18 +49,31 @@ class ProjectController extends Controller
         ]);
 
         if ($validated['status'] === 'revision_requested') {
-            if ($deliverable->remaining_revisions <= 0) {
-                abort(403, 'لقد استنفدت الحد الأقصى من التعديلات المسموحة لهذا التسليم.');
+            // Revisions are tracked across the ENTIRE project, not per deliverable
+            $project->load(['deliverables', 'originalProposal', 'proposalViaBrief']);
+            $currentRemaining = $project->deliverables->min('remaining_revisions');
+
+            if ($currentRemaining === null) {
+                $proposal = $project->originalProposal ?? $project->proposalViaBrief;
+                $currentRemaining = (int) ($proposal?->revision_limit ?? 2);
             }
+
+            if ($currentRemaining <= 0) {
+                abort(403, 'لقد استنفدت الحد الأقصى من التعديلات المسموحة للمشروع كامل.');
+            }
+
+            $newRemaining = max(0, $currentRemaining - 1);
 
             $deliverable->status = 'revision_requested';
             $deliverable->client_feedback = !empty($validated['client_feedback'])
                 ? strip_tags((string) $validated['client_feedback'])
                 : null;
-            $deliverable->remaining_revisions = max(0, $deliverable->remaining_revisions - 1);
             $deliverable->save();
 
-            return back()->with('success', 'تم طلب التعديل بنجاح وتم إرسال الملاحظات للمستقل.');
+            // Deduct from ALL deliverables of this project to keep project-wide balance synchronized
+            $project->deliverables()->update(['remaining_revisions' => $newRemaining]);
+
+            return back()->with('success', "تم طلب التعديل بنجاح. متبقي {$newRemaining} تعديلات للمشروع كامل.");
         }
 
         if ($validated['status'] === 'approved') {
@@ -99,45 +112,90 @@ class ProjectController extends Controller
     /**
      * Force download the deliverable file securely from Supabase S3.
      */
-    public function downloadDeliverable(Request $request, Project $project, Deliverable $deliverable)
+    public function downloadDeliverable(Request $request, $project, $deliverable)
     {
-        if ($project->client_id !== auth()->id()) {
+        $projectModel = $project instanceof Project ? $project : Project::findOrFail($project);
+        if ((string) $projectModel->client_id !== (string) auth()->id()) {
             abort(403, 'غير مصرح لك.');
         }
 
-        if ($deliverable->project_id !== $project->id) {
-            abort(404);
-        }
+        $deliverableModel = $deliverable instanceof Deliverable 
+            ? $deliverable 
+            : Deliverable::where('project_id', $projectModel->id)->findOrFail($deliverable);
 
-        if (! $deliverable->file_path) {
+        if (! $deliverableModel->file_path) {
             abort(404, 'الملف غير موجود.');
         }
 
-        return \Illuminate\Support\Facades\Storage::disk('deliverables-files')->download(
-            $deliverable->file_path, 
-            basename($deliverable->file_path)
-        );
+        $rawPath = (string) $deliverableModel->file_path;
+        if (filter_var($rawPath, FILTER_VALIDATE_URL)) {
+            return redirect()->away($rawPath);
+        }
+
+        $cleanPath = ltrim($rawPath, '/');
+        if (preg_match('#(?:deliverables-files/)(.+)#', $cleanPath, $matches)) {
+            $cleanPath = $matches[1];
+        }
+
+        $fileName = basename($cleanPath);
+        $userFriendlyName = preg_replace('/^[a-f0-9\-]+-\d+-/i', '', $fileName) ?: $fileName;
+
+        try {
+            if (\Illuminate\Support\Facades\Storage::disk('deliverables-files')->exists($cleanPath)) {
+                return \Illuminate\Support\Facades\Storage::disk('deliverables-files')->download($cleanPath, $userFriendlyName);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Company download S3 error: ' . $e->getMessage());
+        }
+
+        $publicUrl = 'https://uvgwjjpzkzmgeolkqnuf.supabase.co/storage/v1/object/public/deliverables-files/' . $cleanPath;
+        return redirect()->away($publicUrl);
     }
 
     /**
      * View the deliverable file securely in the browser (inline) from Supabase S3.
      */
-    public function viewDeliverable(Request $request, Project $project, Deliverable $deliverable)
+    public function viewDeliverable(Request $request, $project, $deliverable)
     {
-        if ($project->client_id !== auth()->id()) {
+        $projectModel = $project instanceof Project ? $project : Project::findOrFail($project);
+        if ((string) $projectModel->client_id !== (string) auth()->id()) {
             abort(403, 'غير مصرح لك.');
         }
 
-        if ($deliverable->project_id !== $project->id) {
-            abort(404);
-        }
+        $deliverableModel = $deliverable instanceof Deliverable 
+            ? $deliverable 
+            : Deliverable::where('project_id', $projectModel->id)->findOrFail($deliverable);
 
-        if (! $deliverable->file_path) {
+        if (! $deliverableModel->file_path) {
             abort(404, 'الملف غير موجود.');
         }
 
-        return \Illuminate\Support\Facades\Storage::disk('deliverables-files')->response(
-            $deliverable->file_path
-        );
+        $rawPath = (string) $deliverableModel->file_path;
+        if (filter_var($rawPath, FILTER_VALIDATE_URL)) {
+            return redirect()->away($rawPath);
+        }
+
+        $cleanPath = ltrim($rawPath, '/');
+        if (preg_match('#(?:deliverables-files/)(.+)#', $cleanPath, $matches)) {
+            $cleanPath = $matches[1];
+        }
+
+        $ext = strtolower(pathinfo($cleanPath, PATHINFO_EXTENSION));
+        $archiveOrDesignTypes = ['zip', 'rar', '7z', 'tar', 'gz', 'psd', 'ai', 'xd', 'fig', 'sketch'];
+
+        if (in_array($ext, $archiveOrDesignTypes)) {
+            return $this->downloadDeliverable($request, $projectModel, $deliverableModel);
+        }
+
+        try {
+            if (\Illuminate\Support\Facades\Storage::disk('deliverables-files')->exists($cleanPath)) {
+                return \Illuminate\Support\Facades\Storage::disk('deliverables-files')->response($cleanPath);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Company view S3 error: ' . $e->getMessage());
+        }
+
+        $publicUrl = 'https://uvgwjjpzkzmgeolkqnuf.supabase.co/storage/v1/object/public/deliverables-files/' . $cleanPath;
+        return redirect()->away($publicUrl);
     }
 }

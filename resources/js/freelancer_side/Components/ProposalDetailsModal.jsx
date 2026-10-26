@@ -145,7 +145,7 @@ export default function ProposalDetailsModal({ proposal, onClose, onAccept, onCh
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                  <label className="text-[10px] font-bold text-slate-400 block mb-1">عدد التعديلات المسموحة</label>
+                  <label className="text-[10px] font-bold text-slate-400 block mb-1">عدد التعديلات المسموحة (للمشروع كامل)</label>
                   <p className="font-bold text-slate-700 flex items-center gap-2 mt-1">
                     <RotateCcw size={16} className="text-slate-400" />
                     {revisions}

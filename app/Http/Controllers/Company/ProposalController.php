@@ -33,12 +33,13 @@ class ProposalController extends Controller
                 'progress' => 0,
             ]);
 
-            // Create deliverables based on the proposal milestones
+            // Create deliverables based on the proposal milestones with project-wide revision limit
+            $projectRevisionLimit = (int) ($proposal->revision_limit ?? 2);
             foreach ($proposal->milestones as $milestone) {
                 Deliverable::create([
                     'project_id' => $project->id,
                     'title' => $milestone->title,
-                    'remaining_revisions' => $proposal->revision_limit ?? 3,
+                    'remaining_revisions' => $projectRevisionLimit,
                     'status' => null, // Will be set to 'submitted' by the freelancer later
                 ]);
             }

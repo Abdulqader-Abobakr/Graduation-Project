@@ -8,6 +8,7 @@ export default function MyProjectsPage({
     onCreateRequest,
     search = '',
     activeFilter = 'all',
+    onFilterChange,
 }) {
     const [viewingFreelancerId, setViewingFreelancerId] = useState(null);
 
@@ -67,7 +68,7 @@ export default function MyProjectsPage({
                 )}
             </div>
 
-            {!isFiltering && hasAnyProjects && (
+            {hasAnyProjects && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                     {pendingPaymentCount > 0 && (
                         <StatusPill
@@ -75,6 +76,8 @@ export default function MyProjectsPage({
                             label="بانتظار الدفع"
                             count={pendingPaymentCount}
                             color="bg-amber-50 text-amber-700"
+                            active={activeFilter === 'pending_payment'}
+                            onClick={() => onFilterChange && onFilterChange(activeFilter === 'pending_payment' ? 'all' : 'pending_payment')}
                         />
                     )}
                     <StatusPill
@@ -82,12 +85,16 @@ export default function MyProjectsPage({
                         label="مشاريع نشطة"
                         count={activeCount}
                         color="bg-primary/10 text-primary"
+                        active={activeFilter === 'active'}
+                        onClick={() => onFilterChange && onFilterChange(activeFilter === 'active' ? 'all' : 'active')}
                     />
                     <StatusPill
                         icon={<CheckCircle2 size={18} />}
                         label="مشاريع مكتملة"
                         count={completedCount}
                         color="bg-emerald-50 text-emerald-700"
+                        active={activeFilter === 'completed'}
+                        onClick={() => onFilterChange && onFilterChange(activeFilter === 'completed' ? 'all' : 'completed')}
                     />
                 </div>
             )}
@@ -187,14 +194,22 @@ export default function MyProjectsPage({
     );
 }
 
-const StatusPill = ({ icon, label, count, color }) => (
-    <div className="flex items-center gap-3 rounded-2xl border border-[#e6e4de] bg-white p-4 shadow-sm">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${color}`}>
+const StatusPill = ({ icon, label, count, color, active, onClick }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        className={`flex items-center gap-3 rounded-2xl border p-4 shadow-sm text-start transition-all cursor-pointer ${
+            active
+                ? 'border-primary ring-2 ring-primary/15 bg-white'
+                : 'border-[#e6e4de] bg-white hover:border-slate-300'
+        }`}
+    >
+        <div className={`flex h-10 w-10 items-center justify-center rounded-xl shrink-0 ${color}`}>
             {icon}
         </div>
         <div>
             <p className="text-xs font-bold text-[#7a7974]">{label}</p>
             <p className="text-lg font-black text-[#28251d]">{count}</p>
         </div>
-    </div>
+    </button>
 );

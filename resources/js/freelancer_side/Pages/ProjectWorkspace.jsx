@@ -18,32 +18,26 @@ import {
   Download,
   Eye,
   ExternalLink,
-  MessageSquare,
   ShieldCheck,
   Send,
   Layers,
 } from 'lucide-react';
-import { Link, useForm, usePage } from '@inertiajs/react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
 import ProposalDetailsModal from '../Components/ProposalDetailsModal';
-import CompanyProfileModal from '../Components/CompanyProfileModal';
 
-const normalizeImageUrl = (url) => {
-  if (!url || typeof url !== 'string') return null;
-  let normalized = url.replace(/\/storage\/v1\/s3\/\.\.\/object\/public\//g, '/storage/v1/object/public/');
-  normalized = normalized.replace(/\/s3\/\.\.\/object\/public\//g, '/object/public/');
-  return normalized;
-};
+const SAFE_URL_REGEX = /^https?:\/\/(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}(?::\d{1,5})?(?:[\/?#][^\s"\'<>`\\^]*)?$/i;
 
 export default function ProjectWorkspace({ pageTitle, project }) {
   const { props } = usePage();
   const flash = props.flash ?? {};
 
   const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
-  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [showReuploadForm, setShowReuploadForm] = useState(false);
+  const [linkError, setLinkError] = useState('');
   const fileInputRef = useRef(null);
+  const lastDisplayedFlashRef = useRef(null);
 
   if (!project) return null;
 
@@ -90,14 +84,30 @@ export default function ProjectWorkspace({ pageTitle, project }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTask?.id]);
 
-  // Show floating toast when flash.success arrives
+  // Show floating toast when flash.success arrives - only once per unique message
   useEffect(() => {
-    if (flash.success) {
+    if (flash?.success && flash.success !== lastDisplayedFlashRef.current) {
+      lastDisplayedFlashRef.current = flash.success;
       setShowToast(true);
-      const timer = setTimeout(() => setShowToast(false), 5000);
+      const timer = setTimeout(() => setShowToast(false), 4500);
       return () => clearTimeout(timer);
     }
-  }, [flash.success, props]);
+  }, [flash?.success]);
+
+  // Auto-refresh: polls workspace changes every 4 seconds when tab is active and not currently uploading
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!document.hidden && !processing && !isProposalModalOpen && !data.file) {
+        router.reload({
+          only: ['project'],
+          preserveScroll: true,
+          preserveState: true,
+        });
+      }
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [processing, isProposalModalOpen, data.file]);
 
   const handleFileSelect = (file) => {
     if (file) setData('file', file);
@@ -114,24 +124,41 @@ export default function ProjectWorkspace({ pageTitle, project }) {
     e?.preventDefault();
     if (!selectedTask) return;
 
+    setLinkError('');
+
+    // Client-side regex & safety validation for external link
+    if (data.external_link && data.external_link.trim() !== '') {
+      const trimmedLink = data.external_link.trim();
+      if (!SAFE_URL_REGEX.test(trimmedLink)) {
+        setLinkError('صيغة الرابط غير صحيحة أو غير آمنة. يجب أن يبدأ بـ http:// أو https:// ولا يحتوي على محارف خاصة.');
+        return;
+      }
+    }
+
+    const hasExistingDelivery = selectedTask?.filePath || selectedTask?.externalLink;
+    if (!data.file && (!data.external_link || data.external_link.trim() === '') && !hasExistingDelivery) {
+      setLinkError('يجب إرفاق ملف أو رابط خارجي على الأقل لإرسال التسليم.');
+      return;
+    }
+
+    lastDisplayedFlashRef.current = null;
+
     post(`/freelancer/projects/${project.id}/deliverables`, {
       forceFormData: true,
       preserveScroll: true,
       onSuccess: () => {
         reset('file', 'external_link', 'notes');
         setShowReuploadForm(false);
+        setLinkError('');
       },
     });
   };
 
-  const clientAvatar = normalizeImageUrl(project.client?.avatar);
-  const clientDisplayName = project.client?.name || 'شركة';
-
   return (
     <div className="p-4 sm:p-6 md:p-8 pb-24 overflow-y-auto h-full bg-[#fcfcfd]" dir="rtl">
       <div className="max-w-6xl mx-auto text-start space-y-6">
-        {/* Navigation & Header Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* Navigation Action */}
+        <div className="flex items-center justify-between gap-4">
           <Link
             href="/freelancer/projects"
             className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 transition-colors w-fit text-xs sm:text-sm font-semibold group cursor-pointer"
@@ -139,17 +166,6 @@ export default function ProjectWorkspace({ pageTitle, project }) {
             <ChevronRight size={18} className="transition-transform group-hover:translate-x-0.5" />
             <span>العودة لقائمة المشاريع</span>
           </Link>
-
-          {/* Quick Chat with Client */}
-          {project.chatId && (
-            <Link
-              href={`/freelancer/chat/${project.chatId}`}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-[#2a7de1] hover:border-blue-200 text-xs font-semibold shadow-2xs transition-all w-fit cursor-pointer"
-            >
-              <MessageSquare size={15} className="text-[#2a7de1]" />
-              <span>محادثة العميل مباشرة</span>
-            </Link>
-          )}
         </div>
 
         {/* Flash Notifications */}
@@ -193,63 +209,69 @@ export default function ProjectWorkspace({ pageTitle, project }) {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
             {/* Title & Scope */}
             <div className="min-w-0">
-              <span className="text-[11px] font-medium text-slate-400 block mb-1">
-                مساحة العمل التنفيذية
-              </span>
+              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                <span className="text-[11px] font-semibold text-[#2a7de1] bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-100">
+                  مساحة العمل التنفيذية
+                </span>
+                <span
+                  className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${
+                    project.status === 'completed'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-blue-50 text-[#2a7de1] border-blue-200'
+                  }`}
+                >
+                  {project.status === 'completed' ? 'مشروع مكتمل' : 'قيد التنفيذ والمتابعة'}
+                </span>
+              </div>
               <h1 className="text-lg sm:text-2xl font-semibold text-slate-800 leading-snug break-words">
                 {project.title}
               </h1>
             </div>
 
-            {/* Client Identity Pill (Clickable) */}
-            <button
-              type="button"
-              onClick={() => setIsCompanyModalOpen(true)}
-              className="flex items-center gap-3 p-2 rounded-2xl bg-slate-50 border border-slate-200 hover:border-blue-200 transition-colors cursor-pointer text-start shrink-0 group/client"
-              title="عرض الملف التعريفي للشركة"
-            >
-              <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 overflow-hidden flex items-center justify-center shadow-2xs group-hover/client:border-[#2a7de1] transition-colors shrink-0">
-                {clientAvatar ? (
-                  <img
-                    src={clientAvatar}
-                    alt={clientDisplayName}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-[#2a7de1] to-[#1f6fd4] text-white flex items-center justify-center font-semibold text-sm">
-                    {clientDisplayName.charAt(0) || 'ش'}
-                  </div>
-                )}
+            {/* Quick Metrics (Value, Stages & Project Revisions) */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap">
+              <div className="px-3.5 py-2 rounded-2xl bg-slate-50 border border-slate-200/90 text-start">
+                <span className="text-[10px] text-slate-400 font-medium block">قيمة المشروع</span>
+                <span className="text-xs sm:text-sm font-semibold text-slate-800">{project.projectValue} ر.ي</span>
               </div>
-              <div className="min-w-0">
-                <span className="text-xs font-semibold text-slate-800 group-hover/client:text-[#2a7de1] transition-colors block truncate">
-                  {clientDisplayName}
-                </span>
-                <span className="text-[11px] font-medium text-slate-400 block truncate">
-                  {project.client?.city || 'اليمن'} (انقر للملف)
+              <div className="px-3.5 py-2 rounded-2xl bg-slate-50 border border-slate-200/90 text-start">
+                <span className="text-[10px] text-slate-400 font-medium block">المراحل الإجمالية</span>
+                <span className="text-xs sm:text-sm font-semibold text-slate-800">{project.totalTasks} مراحل</span>
+              </div>
+              <div className="px-3.5 py-2 rounded-2xl bg-slate-50 border border-slate-200/90 text-start">
+                <span className="text-[10px] text-slate-400 font-medium block">تعديلات المشروع المتبقية</span>
+                <span className="text-xs sm:text-sm font-semibold text-slate-800">
+                  {project.remainingRevisions ?? 0} من {project.revisionLimit ?? 2}
                 </span>
               </div>
-            </button>
+            </div>
           </div>
 
-          {/* Quick Metrics & Escrow Status */}
-          <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-            {/* Escrow badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-100 text-[#2a7de1] font-semibold">
-              <ShieldCheck size={16} />
-              <span>المبلغ مؤمن في الضمان ({project.projectValue} ر.ي)</span>
+          {/* Progress & Escrow Status */}
+          <div className="space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+              {/* Payment status badge */}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold shadow-2xs">
+                <ShieldCheck size={16} className="text-emerald-600 shrink-0" />
+                <span>تم دفع مبلغ المشروع وهو معلّق بأمان لدينا حتى إتمام التسليم</span>
+              </div>
+
+              {/* Progress status */}
+              <div className="flex items-center gap-3 font-semibold text-slate-600">
+                <span>
+                  المراحل المكتملة: {project.completedTasks} من {project.totalTasks}
+                </span>
+                <span className="text-slate-300">|</span>
+                <span className="text-[#2a7de1]">{project.progress}% إنجاز</span>
+              </div>
             </div>
 
-            {/* Progress status */}
-            <div className="flex items-center gap-3 font-semibold text-slate-600">
-              <span>
-                المراحل المكتملة: {project.completedTasks} من {project.totalTasks}
-              </span>
-              <span className="text-slate-300">|</span>
-              <span className="text-[#2a7de1]">{project.progress}% إنجاز</span>
+            {/* Visual Progress Bar */}
+            <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200/60">
+              <div
+                className="bg-[#2a7de1] h-2 rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${project.progress}%` }}
+              />
             </div>
           </div>
         </div>
@@ -410,11 +432,6 @@ export default function ProjectWorkspace({ pageTitle, project }) {
                       <AlertCircle size={16} className="text-rose-600 shrink-0" />
                       ملاحظات وتوجيهات العميل للتعديل المطلوبة:
                     </span>
-                    {selectedTask.remainingRevisions !== undefined && (
-                      <span className="bg-white/80 px-2.5 py-0.5 rounded-lg border border-rose-200 text-[11px]">
-                        المراجعات المتبقية: {selectedTask.remainingRevisions}
-                      </span>
-                    )}
                   </div>
                   <p className="text-xs sm:text-sm font-medium leading-relaxed bg-white/60 p-3 rounded-xl border border-rose-100">
                     {selectedTask.clientFeedback || 'لم يقم العميل بكتابة ملاحظات تفصيلية، يرجى التواصل معه لمعرفة التفاصيل.'}
@@ -468,7 +485,6 @@ export default function ProjectWorkspace({ pageTitle, project }) {
                           {selectedTask.downloadUrl && (
                             <a
                               href={selectedTask.downloadUrl}
-                              download
                               className="p-1.5 rounded-lg text-slate-600 hover:text-[#2a7de1] hover:bg-slate-50 transition-colors"
                               title="تحميل الملف"
                             >
@@ -588,6 +604,36 @@ export default function ProjectWorkspace({ pageTitle, project }) {
                     )}
                   </div>
 
+                  {/* Current Active Deliverables Notice (Shows what is already attached and preserved) */}
+                  {(selectedTask?.filePath || selectedTask?.externalLink) && (
+                    <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-2xl text-xs space-y-2 text-slate-700">
+                      <div className="flex items-center gap-1.5 font-bold text-[#2a7de1]">
+                        <Info size={15} />
+                        <span>المرفقات الحالية لهذه المرحلة:</span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-[11px] text-slate-600">
+                        {selectedTask.filePath && (
+                          <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                            <FileText size={13} className="text-[#2a7de1] shrink-0" />
+                            <span className="truncate max-w-[200px]" title={selectedTask.fileName || 'ملف محفوظ'} dir="ltr">
+                              {selectedTask.fileName || 'ملف مرفق محفوظ'}
+                            </span>
+                            <span className="text-slate-400 font-normal shrink-0">(سيبقى محفوظاً إذا لم ترفع ملفاً جديداً)</span>
+                          </div>
+                        )}
+                        {selectedTask.externalLink && (
+                          <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                            <LinkIcon size={13} className="text-purple-600 shrink-0" />
+                            <span className="truncate max-w-[200px] font-mono" title={selectedTask.externalLink} dir="ltr">
+                              {selectedTask.externalLink}
+                            </span>
+                            <span className="text-slate-400 font-normal shrink-0">(سيبقى محفوظاً إذا تركت حقل الرابط فارغاً)</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Drag and drop upload zone */}
                   <div
                     onClick={() => fileInputRef.current?.click()}
@@ -622,21 +668,27 @@ export default function ProjectWorkspace({ pageTitle, project }) {
                           <p className="text-xs sm:text-sm font-semibold text-slate-800 break-all">
                             {data.file.name}
                           </p>
-                          <p className="text-[11px] text-slate-400 font-medium">
-                            {(data.file.size / (1024 * 1024)).toFixed(2)} ميجابايت - جاهز للإرسال
+                          <p className="text-[11px] text-slate-500 font-medium">
+                            {processing
+                              ? progress && progress.percentage < 100
+                                ? `جارٍ الرفع (${progress.percentage}%)...`
+                                : 'جارٍ الإرسال...'
+                              : `${(data.file.size / (1024 * 1024)).toFixed(2)} ميجابايت - جاهز للإرسال`}
                           </p>
                         </div>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setData('file', null);
-                          }}
-                          className="mt-1 px-3 py-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-xs font-semibold flex items-center gap-1 cursor-pointer"
-                        >
-                          <X size={13} />
-                          <span>إلغاء هذا الملف</span>
-                        </button>
+                        {!processing && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setData('file', null);
+                            }}
+                            className="mt-1 px-3 py-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                          >
+                            <X size={13} />
+                            <span>إلغاء هذا الملف</span>
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <>
@@ -654,17 +706,25 @@ export default function ProjectWorkspace({ pageTitle, project }) {
 
                     {/* Progress Bar */}
                     {progress && (
-                      <div className="w-full mt-4 bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className="bg-[#2a7de1] h-1.5 rounded-full transition-all duration-300"
-                          style={{ width: `${progress.percentage}%` }}
-                        />
+                      <div className="w-full mt-4 space-y-1">
+                        <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500">
+                          <span className={progress.percentage >= 100 ? 'text-[#2a7de1] animate-pulse' : ''}>
+                            {progress.percentage >= 100 ? 'جارٍ الإرسال...' : 'جارٍ رفع الملف...'}
+                          </span>
+                          <span>{progress.percentage < 100 ? `${progress.percentage}%` : ''}</span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className="bg-[#2a7de1] h-1.5 rounded-full transition-all duration-300"
+                            style={{ width: `${progress.percentage}%` }}
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
                   {errors.file && <p className="text-red-500 text-xs font-medium">{errors.file}</p>}
 
-                  {/* External Link Input */}
+                  {/* External Link Input with Regex & Injection Prevention */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                       <LinkIcon size={14} className="text-slate-400" />
@@ -672,14 +732,26 @@ export default function ProjectWorkspace({ pageTitle, project }) {
                     </label>
                     <input
                       type="url"
-                      placeholder="https://..."
+                      placeholder="https://example.com/project-link"
+                      pattern="https?://.+"
                       value={data.external_link}
-                      onChange={(e) => setData('external_link', e.target.value)}
+                      onChange={(e) => {
+                        // Prevent characters commonly used in SQL injection and XSS
+                        const sanitized = e.target.value.replace(/['"<>`\\]/g, '');
+                        setData('external_link', sanitized);
+                        if (linkError) setLinkError('');
+                      }}
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2a7de1]/20 focus:border-[#2a7de1] transition-all text-xs sm:text-sm font-medium placeholder-slate-400"
                       dir="ltr"
                     />
+                    <p className="text-[11px] text-slate-400 font-medium">
+                      صيغة الرابط الآمن: يجب أن يبدأ بـ https:// أو http:// (مستندات، تصاميم، أو مستودعات برمجية).
+                    </p>
+                    {linkError && (
+                      <p className="text-rose-500 text-xs font-semibold mt-1">{linkError}</p>
+                    )}
                     {errors.external_link && (
-                      <p className="text-red-500 text-xs font-medium">{errors.external_link}</p>
+                      <p className="text-rose-500 text-xs font-semibold mt-1">{errors.external_link}</p>
                     )}
                   </div>
 
@@ -704,15 +776,15 @@ export default function ProjectWorkspace({ pageTitle, project }) {
                   <div className="pt-2">
                     <button
                       type="submit"
-                      disabled={processing || (!data.file && !data.external_link)}
+                      disabled={processing || (!data.file && !data.external_link && !selectedTask?.filePath && !selectedTask?.externalLink)}
                       className="w-full py-3 px-5 bg-[#2a7de1] hover:bg-[#1f6fd4] text-white rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-blue-500/20 hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       <Send size={16} />
                       <span>
                         {processing
-                          ? progress
-                            ? `جاري الرفع... ${progress.percentage}%`
-                            : 'جاري الإرسال...'
+                          ? progress && progress.percentage < 100
+                            ? `جارٍ الرفع (${progress.percentage}%)...`
+                            : 'جارٍ الإرسال...'
                           : selectedTask?.status === 'revision_requested'
                           ? 'إرسال النسخة المعدلة للعميل'
                           : 'إرسال تسليم المرحلة للعميل'}
@@ -783,14 +855,6 @@ export default function ProjectWorkspace({ pageTitle, project }) {
           onClose={() => setIsProposalModalOpen(false)}
         />
       )}
-
-      {/* Company Profile Modal */}
-      <CompanyProfileModal
-        isOpen={isCompanyModalOpen}
-        company={project.client}
-        companyId={project.client?.id}
-        onClose={() => setIsCompanyModalOpen(false)}
-      />
     </div>
   );
 }

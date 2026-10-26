@@ -106,7 +106,7 @@ const Profile = ({ pageTitle, user = {}, company = {} }) => {
                 <div className="flex-1 overflow-y-auto">
                     <form onSubmit={handleSubmit} className="p-8 space-y-8" dir="rtl">
                         <div>
-                            <h1 className="text-3xl font-bold mb-2">{pageTitle || 'ملفي الشخصي'}</h1>
+                            <h1 className="text-3xl font-bold mb-2">{company?.business_name || data.user_name || user?.user_name || pageTitle || 'ملفي الشخصي'}</h1>
                             <p className="text-slate-500">قم بإدارة بيانات الشركة والهوية العامة.</p>
                         </div>
 

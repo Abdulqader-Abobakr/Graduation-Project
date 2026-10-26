@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
   LayoutDashboard,
@@ -11,9 +11,96 @@ import {
   MessageSquare,
   Menu,
   Settings,
-  LogOut
+  LogOut,
+  SlidersHorizontal,
+  X,
 } from 'lucide-react';
 import logo from '../assets/logo.png';
+
+export const FreelancerLayoutContext = createContext({
+  activeFilter: 'all',
+  setActiveFilter: () => {},
+  search: '',
+  setSearch: () => {},
+});
+
+export const useFreelancerFilter = () => useContext(FreelancerLayoutContext);
+
+const pageFilters = {
+  dashboard: {
+    label: 'مجال الطلب',
+    options: [
+      { value: 'all', label: 'الكل' },
+      { value: 'tech', label: 'برمجة وتطوير' },
+      { value: 'design', label: 'تصميم وإبداع' },
+      { value: 'marketing', label: 'تسويق ومبيعات' },
+      { value: 'writing', label: 'كتابة وترجمة' },
+      { value: 'business', label: 'أعمال واستشارات' },
+    ],
+  },
+  projects: {
+    label: 'حالة المشروع',
+    options: [
+      { value: 'all', label: 'الكل' },
+      { value: 'active', label: 'قيد التنفيذ' },
+      { value: 'revision', label: 'مطلوب تعديل' },
+      { value: 'awaiting', label: 'بانتظار المراجعة' },
+      { value: 'completed', label: 'مكتمل' },
+    ],
+  },
+  proposals: {
+    label: 'التصنيف والحالة',
+    options: [
+      { value: 'all', label: 'الكل' },
+      { value: 'direct', label: 'طلبات مباشرة' },
+      { value: 'sent', label: 'العروض المرسلة' },
+      { value: 'pending', label: 'عروض قيد المراجعة' },
+      { value: 'accepted', label: 'عروض مقبولة' },
+      { value: 'rejected', label: 'عروض مرفوضة' },
+    ],
+  },
+  earnings: {
+    label: 'الفترة الزمنية',
+    options: [
+      { value: 'all', label: 'جميع الفترات' },
+      { value: 'today', label: 'اليوم' },
+      { value: 'week', label: 'آخر 7 أيام' },
+      { value: 'month', label: 'هذا الشهر' },
+      { value: 'last_month', label: 'الشهر الماضي' },
+      { value: 'year', label: 'هذا العام' },
+    ],
+  },
+  services: {
+    label: 'عرض الأقسام',
+    options: [
+      { value: 'all', label: 'الكل' },
+      { value: 'portfolio', label: 'معرض الأعمال' },
+      { value: 'specialties', label: 'التخصصات والقطاعات' },
+      { value: 'availability', label: 'حالة التواجد' },
+    ],
+  },
+  chat: {
+    label: 'المحادثات',
+    options: [
+      { value: 'all', label: 'جميع المحادثات' },
+      { value: 'unread', label: 'غير مقروءة' },
+    ],
+  },
+};
+
+const resolvePageKey = (path, isChatWithConversation) => {
+  if (path === '/freelancer' || path === '/freelancer/') return 'dashboard';
+  if (path.startsWith('/freelancer/projects/') && path !== '/freelancer/projects') return 'workspace';
+  if (path.startsWith('/freelancer/projects')) return 'projects';
+  if (path.startsWith('/freelancer/proposals')) return 'proposals';
+  if (path.startsWith('/freelancer/services')) return 'services';
+  if (path.startsWith('/freelancer/earnings')) return 'earnings';
+  if (path.startsWith('/freelancer/chat')) {
+    if (isChatWithConversation) return 'chat_open';
+    return 'chat';
+  }
+  return null;
+};
 
 const getNavItems = (chatBadge) => [
   { icon: <LayoutDashboard size={20} />, label: 'الرئيسية', href: '/freelancer' },
@@ -62,7 +149,33 @@ export default function FreelancerLayout({ children }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const [search, setSearch] = useState('');
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const filterDropdownRef = useRef(null);
   const mainContentRef = useRef(null);
+
+  const activePageKey = resolvePageKey(currentPath, isChatWithConversation);
+  const currentFilter = activePageKey ? (pageFilters[activePageKey] || { label: '', options: [] }) : { label: '', options: [] };
+  const isFiltering = activeFilter !== 'all';
+
+  useEffect(() => {
+    setActiveFilter('all');
+    setIsFilterOpen(false);
+  }, [currentPath]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target)) {
+        setIsFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleFilterChange = (val) => {
+    setActiveFilter(val);
+  };
 
   useEffect(() => {
     if (mainContentRef.current) {
@@ -170,7 +283,7 @@ export default function FreelancerLayout({ children }) {
                 {auth?.user?.user_name?.charAt(0)?.toUpperCase() || 'F'}
               </div>
             )}
-            label="ملفي الشخصي"
+            label={auth?.user?.user_name || auth?.user?.name || 'الملف الشخصي'}
             href="/freelancer/profile"
             collapsed={isSidebarCollapsed}
             active={currentPath.startsWith('/freelancer/profile')}
@@ -199,28 +312,113 @@ export default function FreelancerLayout({ children }) {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-hidden bg-gray-50">
         {/* Top Header */}
-        <header className="relative flex h-16 items-center justify-center border-b border-slate-200 bg-white px-8 shrink-0 z-40">
+        <header className="relative flex h-16 items-center justify-center border-b border-slate-200 bg-white px-8 shrink-0 z-40" dir="rtl">
           <div className="absolute inset-s-8 flex items-center gap-4">
             <button
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
               aria-label={isSidebarCollapsed ? 'فتح القائمة الجانبية' : 'طي القائمة الجانبية'}
-              className="p-2 text-slate-500 hover:bg-slate-100 hover:text-primary rounded-xl transition-colors"
+              className="p-2 text-slate-500 hover:bg-slate-100 hover:text-primary rounded-xl transition-colors cursor-pointer"
             >
               <Menu size={24} />
             </button>
           </div>
-          <form onSubmit={handleSearch} dir="rtl" className="hidden w-full max-w-2xl flex-row-reverse md:flex">
-            <input
-              type="text"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder={searchPlaceholder}
-              className="min-w-0 flex-1 rounded-e-full border border-s-0 border-slate-200 bg-slate-50 py-2 pe-4 ps-5 text-right text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-            />
-            <button type="submit" aria-label="بحث" className="flex w-12 shrink-0 items-center justify-center rounded-s-full border border-primary bg-primary text-white transition hover:bg-primary-dark">
-              <Search size={18} />
-            </button>
-          </form>
+
+          <div className="hidden w-full max-w-3xl items-center gap-2 md:flex">
+            {/* Search Form */}
+            <form onSubmit={handleSearch} className="flex min-w-0 flex-1 flex-row-reverse relative">
+              <input
+                type="text"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder={searchPlaceholder}
+                className="min-w-0 flex-1 rounded-e-full border border-s-0 border-slate-200 bg-slate-50 py-2 pe-4 ps-10 text-right text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch('');
+                    const currentPath = url.split('?')[0] || '/freelancer';
+                    if (new URL(url, window.location.origin).searchParams.has('search')) {
+                      router.get(currentPath, {}, { preserveScroll: true, preserveState: true });
+                    }
+                  }}
+                  className="absolute start-14 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                  title="مسح حقل البحث"
+                  aria-label="مسح حقل البحث"
+                >
+                  <X size={15} />
+                </button>
+              )}
+              <button
+                type="submit"
+                aria-label="بحث"
+                className="flex w-12 shrink-0 items-center justify-center rounded-s-full border border-primary bg-primary text-white transition hover:bg-primary-dark cursor-pointer"
+              >
+                <Search size={18} />
+              </button>
+            </form>
+
+            {/* Filter Toggle Button & Dropdown (Matching Company side) */}
+            {currentFilter.options?.length > 0 && (
+              <div className="relative shrink-0" ref={filterDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsFilterOpen((v) => !v)}
+                  aria-expanded={isFilterOpen}
+                  className={`flex items-center justify-center gap-2 px-4 py-2 bg-white border rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
+                    isFilterOpen || isFiltering
+                      ? 'border-primary text-primary shadow-2xs'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <SlidersHorizontal size={18} />
+                  <span>تصفية</span>
+                  {isFiltering && (
+                    <span className="w-2 h-2 rounded-full bg-primary inline-block"></span>
+                  )}
+                </button>
+
+                {isFilterOpen && (
+                  <div className="absolute top-full mt-2 end-0 z-50 w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-lg text-start">
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-sm font-semibold text-slate-800">{currentFilter.label}</p>
+                      {isFiltering && (
+                        <button
+                          type="button"
+                          onClick={() => handleFilterChange('all')}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-primary cursor-pointer"
+                        >
+                          <X size={14} />
+                          مسح التصفية
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {currentFilter.options.map((opt) => (
+                        <button
+                          type="button"
+                          key={opt.value}
+                          onClick={() => {
+                            handleFilterChange(opt.value);
+                            setIsFilterOpen(false);
+                          }}
+                          className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
+                            activeFilter === opt.value
+                              ? 'bg-primary text-white shadow-2xs'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 border border-transparent'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </header>
 
         {/* Scrollable Body / Children Content */}
@@ -234,7 +432,16 @@ export default function FreelancerLayout({ children }) {
                 : 'overflow-y-auto'
           }`}
         >
-          {children}
+          {React.isValidElement(children)
+            ? React.cloneElement(children, {
+                activeFilter,
+                onFilterChange: handleFilterChange,
+                filter: activeFilter,
+                setFilter: handleFilterChange,
+                search,
+                setSearch,
+              })
+            : children}
         </div>
       </main>
     </div>

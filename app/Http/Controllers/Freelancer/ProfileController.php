@@ -38,7 +38,7 @@ class ProfileController extends Controller
         $avatarUrl = $user->avatar_path; // avatar_path now stores the full public URL
 
         return Inertia::render('freelancer/Profile', [
-            'pageTitle'  => 'ملفي',
+            'pageTitle'  => $user->user_name ?: 'الملف الشخصي',
             'user'       => [
                 'user_name'    => $user->user_name ?? '',
                 'email'        => $user->email ?? '',

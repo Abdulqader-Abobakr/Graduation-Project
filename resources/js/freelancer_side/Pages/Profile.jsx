@@ -131,7 +131,7 @@ const Profile = ({ pageTitle, user = {}, freelancer = {} }) => {
       {/* SECTION 1: Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold mb-2">{pageTitle || 'ملفي'}</h1>
+          <h1 className="text-3xl font-bold mb-2">{data.user_name || user.user_name || user.name || pageTitle || 'الملف الشخصي'}</h1>
           <p className="text-slate-500">قم بإدارة بياناتك المهنية وهويتك العامة.</p>
         </div>
         <Link href="/freelancer" className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all">

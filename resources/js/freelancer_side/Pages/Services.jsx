@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   ExternalLink,
   Plus,
@@ -12,7 +12,6 @@ import {
   ChevronLeft
 } from 'lucide-react';
 import { useForm, Link, usePage } from '@inertiajs/react';
-import { useEffect } from 'react';
 
 // Helper component for managing tags
 const TagInput = ({ tags, setTags, placeholder, error }) => {
@@ -59,9 +58,43 @@ const TagInput = ({ tags, setTags, placeholder, error }) => {
   );
 };
 
-const Services = ({ pageTitle, specialties = [], sectors = [], portfolios = [] }) => {
+const Services = ({
+  pageTitle,
+  specialties = [],
+  sectors = [],
+  portfolios = [],
+  activeFilter = 'all',
+  search = '',
+}) => {
   const { props } = usePage();
   const flash = props.flash ?? {};
+  
+  const showAll = !activeFilter || activeFilter === 'all';
+  const showPortfolio = showAll || activeFilter === 'portfolio';
+  const showSpecialties = showAll || activeFilter === 'specialties';
+  const showAvailability = showAll || activeFilter === 'availability';
+
+  const filteredSpecialties = useMemo(() => {
+    const q = (search || '').trim().toLowerCase();
+    if (!q) return specialties;
+    return specialties.filter((s) => s.toLowerCase().includes(q));
+  }, [specialties, search]);
+
+  const filteredSectors = useMemo(() => {
+    const q = (search || '').trim().toLowerCase();
+    if (!q) return sectors;
+    return sectors.filter((s) => s.toLowerCase().includes(q));
+  }, [sectors, search]);
+
+  const filteredPortfolios = useMemo(() => {
+    const q = (search || '').trim().toLowerCase();
+    if (!q) return portfolios;
+    return portfolios.filter((p) => {
+      const title = (p.title || '').toLowerCase();
+      const domain = (p.marketing_domain || '').toLowerCase();
+      return title.includes(q) || domain.includes(q);
+    });
+  }, [portfolios, search]);
   
   const [availability, setAvailability] = useState('متاح');
   const [isPortfolioModalOpen, setIsPortfolioModalOpen] = useState(false);
@@ -187,135 +220,151 @@ const Services = ({ pageTitle, specialties = [], sectors = [], portfolios = [] }
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className={`grid grid-cols-1 ${showAll ? 'lg:grid-cols-3' : 'max-w-4xl mx-auto'} gap-8`}>
         
-        {/* Left Column: Services and Portfolio (2/3 in RTL) */}
-        <div className="lg:col-span-2 space-y-8">
-          
-          {/* SECTION 4: Marketing Specialties and Sectors */}
-          <section className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-6 bg-[#2a7de1] rounded-full"></div>
-                <h2 className="text-2xl font-bold">التخصصات والقطاعات</h2>
-              </div>
-              <button 
-                onClick={openSpecModal}
-                className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all"
-              >
-                <Edit2 size={16} />
-                تعديل التخصصات
-              </button>
-            </div>
-
-            <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-sm space-y-8">
-              
-              {/* Marketing Specialties */}
-              <div>
-                <h3 className="text-sm font-black text-slate-400 uppercase tracking-wider mb-4">التخصصات التسويقية</h3>
-                {specialties.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {specialties.map((specialty, index) => (
-                      <span key={index} className="px-4 py-2 bg-[#2a7de1]/10 text-[#2a7de1] font-bold text-sm rounded-xl border border-[#2a7de1]/20">
-                        {specialty}
-                      </span>
-                    ))}
+        {/* Left Column: Services and Portfolio */}
+        {(showSpecialties || showPortfolio) && (
+          <div className={`${showAll ? 'lg:col-span-2' : 'w-full'} space-y-8`}>
+            
+            {/* SECTION 4: Marketing Specialties and Sectors */}
+            {showSpecialties && (
+              <section className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-1.5 h-6 bg-[#2a7de1] rounded-full"></div>
+                    <h2 className="text-2xl font-bold">التخصصات والقطاعات</h2>
                   </div>
-                ) : (
-                  <p className="text-slate-500 text-sm font-medium">لم تقم بإضافة أي تخصصات تسويقية بعد.</p>
-                )}
-              </div>
-
-              <div className="h-px w-full bg-slate-100"></div>
-
-              {/* Experienced Sectors */}
-              <div>
-                <h3 className="text-sm font-black text-slate-400 uppercase tracking-wider mb-4">القطاعات ذات الخبرة</h3>
-                {sectors.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {sectors.map((sector, index) => (
-                      <span key={index} className="px-4 py-2 bg-slate-100 text-slate-600 font-bold text-sm rounded-xl border border-slate-200">
-                        {sector}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-slate-500 text-sm font-medium">لم تقم بإضافة أي قطاعات بعد.</p>
-                )}
-              </div>
-
-            </div>
-          </section>
-
-          {/* SECTION 5: Portfolio */}
-          <section className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-6 bg-[#2a7de1] rounded-full"></div>
-                <h2 className="text-2xl font-bold">معرض الأعمال</h2>
-              </div>
-              <button 
-                onClick={openAddPortfolioModal}
-                className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all"
-              >
-                <Plus size={18} />
-                إضافة عمل جديد
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {portfolios.map(portfolio => (
-                <PortfolioCard
-                  key={portfolio.id}
-                  portfolio={portfolio}
-                  onEdit={openEditPortfolioModal}
-                />
-              ))}
-              
-              {portfolios.length === 0 && (
-                <div className="col-span-full border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center p-8 bg-white/50 group hover:border-[#2a7de1] transition-all cursor-pointer" onClick={openAddPortfolioModal}>
-                  <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-slate-300 group-hover:text-slate-700 shadow-sm mb-4">
-                    <Plus size={24} />
-                  </div>
-                  <p className="text-sm font-bold text-slate-400 group-hover:text-slate-600">إضافة عمل جديد</p>
-                  <p className="text-xs text-slate-300 mt-1">قم بإثراء معرض أعمالك</p>
+                  <button 
+                    onClick={openSpecModal}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all cursor-pointer"
+                  >
+                    <Edit2 size={16} />
+                    تعديل التخصصات
+                  </button>
                 </div>
-              )}
-            </div>
-          </section>
 
-        </div>
+                <div className="bg-white rounded-2xl border border-slate-100 p-8 shadow-sm space-y-8">
+                  
+                  {/* Marketing Specialties */}
+                  <div>
+                    <h3 className="text-sm font-black text-slate-400 uppercase tracking-wider mb-4">التخصصات التسويقية</h3>
+                    {filteredSpecialties.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {filteredSpecialties.map((specialty, index) => (
+                          <span key={index} className="px-4 py-2 bg-[#2a7de1]/10 text-[#2a7de1] font-bold text-sm rounded-xl border border-[#2a7de1]/20">
+                            {specialty}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-slate-500 text-sm font-medium">
+                        {search ? 'لا توجد تخصصات مطابقة للبحث.' : 'لم تقم بإضافة أي تخصصات تسويقية بعد.'}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="h-px w-full bg-slate-100"></div>
+
+                  {/* Experienced Sectors */}
+                  <div>
+                    <h3 className="text-sm font-black text-slate-400 uppercase tracking-wider mb-4">القطاعات ذات الخبرة</h3>
+                    {filteredSectors.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {filteredSectors.map((sector, index) => (
+                          <span key={index} className="px-4 py-2 bg-slate-100 text-slate-600 font-bold text-sm rounded-xl border border-slate-200">
+                            {sector}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-slate-500 text-sm font-medium">
+                        {search ? 'لا توجد قطاعات مطابقة للبحث.' : 'لم تقم بإضافة أي قطاعات بعد.'}
+                      </p>
+                    )}
+                  </div>
+
+                </div>
+              </section>
+            )}
+
+            {/* SECTION 5: Portfolio */}
+            {showPortfolio && (
+              <section className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-1.5 h-6 bg-[#2a7de1] rounded-full"></div>
+                    <h2 className="text-2xl font-bold">معرض الأعمال</h2>
+                  </div>
+                  <button 
+                    onClick={openAddPortfolioModal}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all cursor-pointer"
+                  >
+                    <Plus size={18} />
+                    إضافة عمل جديد
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {filteredPortfolios.map(portfolio => (
+                    <PortfolioCard
+                      key={portfolio.id}
+                      portfolio={portfolio}
+                      onEdit={openEditPortfolioModal}
+                    />
+                  ))}
+                  
+                  {filteredPortfolios.length === 0 && (
+                    <div className="col-span-full border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center p-8 bg-white/50 group hover:border-[#2a7de1] transition-all cursor-pointer" onClick={openAddPortfolioModal}>
+                      <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-slate-300 group-hover:text-slate-700 shadow-sm mb-4">
+                        <Plus size={24} />
+                      </div>
+                      <p className="text-sm font-bold text-slate-400 group-hover:text-slate-600">
+                        {search ? 'لا توجد أعمال مطابقة للبحث في معرض الأعمال' : 'إضافة عمل جديد'}
+                      </p>
+                      <p className="text-xs text-slate-300 mt-1">
+                        {search ? 'جرب البحث بكلمة أخرى' : 'قم بإثراء معرض أعمالك'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+          </div>
+        )}
 
         {/* Right Column: Availability */}
-        <div className="space-y-8">
-          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sticky top-8">
-            <div className="flex items-center gap-2 mb-6 border-b border-slate-50 pb-4">
-              <AlertCircle size={20} className="text-slate-700" />
-              <h2 className="text-xl font-bold">التواجد</h2>
-            </div>
-
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">حالة التواجد</label>
-                <select
-                  value={availability}
-                  onChange={(e) => setAvailability(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2a7de1]/15 font-bold appearance-none cursor-pointer"
-                >
-                  <option value="متاح">متاح للعمل</option>
-                  <option value="مشغول">مشغول حالياً</option>
-                  <option value="غير متاح">إجازة / غير متاح</option>
-                </select>
+        {showAvailability && (
+          <div className={`${showAll ? '' : 'max-w-xl mx-auto w-full'} space-y-8`}>
+            <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sticky top-8">
+              <div className="flex items-center gap-2 mb-6 border-b border-slate-50 pb-4">
+                <AlertCircle size={20} className="text-slate-700" />
+                <h2 className="text-xl font-bold">التواجد</h2>
               </div>
 
-              {/* Status Hint */}
-              <div className="flex items-start gap-2 p-3 bg-[#2a7de1]/10 border border-[#2a7de1]/20 rounded-xl">
-                <AlertCircle size={16} className="text-slate-700 shrink-0 mt-0.5" />
-                <p className="text-[10px] text-blue-700 leading-relaxed">سيظهر هذا للعملاء عند تصفح ملفك الشخصي.</p>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">حالة التواجد</label>
+                  <select
+                    value={availability}
+                    onChange={(e) => setAvailability(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2a7de1]/15 font-bold appearance-none cursor-pointer"
+                  >
+                    <option value="متاح">متاح للعمل</option>
+                    <option value="مشغول">مشغول حالياً</option>
+                    <option value="غير متاح">إجازة / غير متاح</option>
+                  </select>
+                </div>
+
+                {/* Status Hint */}
+                <div className="flex items-start gap-2 p-3 bg-[#2a7de1]/10 border border-[#2a7de1]/20 rounded-xl">
+                  <AlertCircle size={16} className="text-slate-700 shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-blue-700 leading-relaxed">سيظهر هذا للعملاء عند تصفح ملفك الشخصي.</p>
+                </div>
               </div>
-            </div>
-          </section>
-        </div>
+            </section>
+          </div>
+        )}
 
       </div>
 

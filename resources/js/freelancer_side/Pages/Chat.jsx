@@ -10,7 +10,7 @@ import {
     Trash2,
 } from 'lucide-react';
 
-export default function Chat({ conversation, conversations = [], search = '' }) {
+export default function Chat({ conversation, conversations = [], search = '', activeFilter = 'all' }) {
     const { auth } = usePage().props;
     const [messages, setMessages] = useState(conversation?.messages || []);
     const [conversationsList, setConversationsList] = useState(conversations || []);
@@ -238,20 +238,25 @@ export default function Chat({ conversation, conversations = [], search = '' }) 
         });
     };
 
-    // Filter conversations using header search prop
+    // Filter conversations using header search and activeFilter props
     const filteredConversations = useMemo(() => {
         const q = (search || '').toLowerCase().trim();
-        const list = conversation?.id
+        let list = conversation?.id
             ? conversationsList.map((c) => (String(c.id) === String(conversation.id) ? { ...c, hasNewClientMessage: false } : c))
             : conversationsList;
+
+        if (activeFilter === 'unread') {
+            list = list.filter((c) => Boolean(c.hasNewClientMessage) || Number(c.unread_count || 0) > 0);
+        }
+
         if (!q) return list;
         return list.filter((c) => {
-            const name = (c.client?.name || '').toLowerCase();
+            const name = (c.client?.name || c.client?.user_name || '').toLowerCase();
             const title = (c.requestTitle || c.subject || '').toLowerCase();
             const lastMsg = (c.lastMessage || '').toLowerCase();
             return name.includes(q) || title.includes(q) || lastMsg.includes(q);
         });
-    }, [conversationsList, conversation?.id, search]);
+    }, [conversationsList, conversation?.id, search, activeFilter]);
 
     // Active conversation details
     const clientName = typeof conversation?.client === 'object'
@@ -511,12 +516,18 @@ export default function Chat({ conversation, conversations = [], search = '' }) 
                 <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl border border-[#e6e4de] p-8 shadow-sm">
                     <MessageSquare size={48} className="text-slate-300 mb-3" />
                     <h2 className="text-lg font-bold text-[#28251d]">
-                        {search ? 'لا توجد محادثات مطابقة للبحث' : 'لا توجد محادثات حالياً'}
+                        {activeFilter === 'unread'
+                            ? 'لا توجد محادثات غير مقروءة'
+                            : search
+                              ? 'لا توجد محادثات مطابقة للبحث'
+                              : 'لا توجد محادثات حالياً'}
                     </h2>
                     <p className="text-sm text-[#7a7974] mt-1 max-w-md">
-                        {search
-                            ? 'جرب البحث بكلمات مختلفة أو اسم العميل.'
-                            : 'عندما يبدأ أحد العملاء مناقشة عرضك أو يتواصل معك، ستظهر المحادثة المباشرة هنا.'}
+                        {activeFilter === 'unread'
+                            ? 'تمت قراءة جميع الرسائل والرد على كافة المحادثات.'
+                            : search
+                              ? 'جرب البحث بكلمات مختلفة أو اسم العميل.'
+                              : 'عندما يبدأ أحد العملاء مناقشة عرضك أو يتواصل معك، ستظهر المحادثة المباشرة هنا.'}
                     </p>
                 </div>
             )}

@@ -39,7 +39,7 @@ class ProfileController extends Controller
         $company = $this->getCachedCompany($user);
 
         return Inertia::render('company_side/Profile', [
-            'pageTitle' => 'ملفي الشخصي',
+            'pageTitle' => $company['business_name'] ?? ($user?->user_name ?: 'ملفي الشخصي'),
             'user' => [
                 'user_name' => $user?->user_name ?? '',
                 'email' => $user?->email ?? '',

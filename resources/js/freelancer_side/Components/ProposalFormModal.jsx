@@ -361,7 +361,7 @@ export default function ProposalFormModal({
               {/* Revision Limit */}
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-800 block">
-                  عدد التعديلات المسموحة <span className="text-red-500">*</span>
+                  عدد التعديلات المسموحة (للمشروع كامل) <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <input
@@ -389,6 +389,7 @@ export default function ProposalFormModal({
                   />
                   <RotateCcw size={18} className="absolute inset-s-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 </div>
+                <p className="text-[11px] text-slate-400 font-medium">إجمالي عدد مرات التعديل المتاحة للعميل على كامل مراحل المشروع (من 0 إلى 3).</p>
                 {errors.revision_limit && <p className="text-red-500 text-xs font-medium">{errors.revision_limit}</p>}
               </div>
 

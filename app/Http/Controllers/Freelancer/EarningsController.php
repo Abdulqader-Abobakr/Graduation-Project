@@ -70,6 +70,7 @@ class EarningsController extends Controller
             $transactions[] = [
                 'id'         => $tx->id,
                 'timestamp'  => $tx->created_at?->timestamp ?? 0,
+                'raw_date'   => $tx->created_at?->toIso8601String() ?? '',
                 'date'       => $tx->created_at ? $tx->created_at->format('d M Y') : '',
                 'desc'       => $tx->project_title ?? 'مشروع',
                 'client'     => $tx->client_user_name ?? '-',
@@ -96,9 +97,10 @@ class EarningsController extends Controller
             $transactions[] = [
                 'id'         => $w->id,
                 'timestamp'  => $w->created_at?->timestamp ?? 0,
+                'raw_date'   => $w->created_at?->toIso8601String() ?? '',
                 'date'       => $w->created_at ? $w->created_at->format('d M Y') : '',
                 'desc'       => 'سحب رصيد — ' . match ($w->method) {
-                    'bank'  => 'تحويل بنكي',
+                    'bank'  => 'بنك الكريمي',
                     'jeeb'  => 'جيب',
                     'local' => 'محلي',
                     default => $w->method,
@@ -112,12 +114,6 @@ class EarningsController extends Controller
 
         // Sort combined list chronologically by timestamp descending
         usort($transactions, fn($a, $b) => $b['timestamp'] <=> $a['timestamp']);
-
-        // Remove temporary sort timestamp
-        $transactions = array_map(function($t) {
-            unset($t['timestamp']);
-            return $t;
-        }, $transactions);
 
         // ── Compute chart data in memory from $projectPayments (0 extra SQL queries!) ──
         $startOfYear      = now()->startOfYear();

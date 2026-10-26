@@ -396,22 +396,37 @@ class BriefController extends Controller
 
         $project = Project::query()
             ->where('client_id', $request->user()->id)
-            ->with(['deliverables' => fn($q) => $q->orderBy('created_at', 'asc')])
+            ->with([
+                'deliverables' => fn($q) => $q->orderBy('created_at', 'asc'),
+                'originalProposal:id,project_id,revision_limit',
+                'proposalViaBrief:id,brief_id,revision_limit',
+            ])
             ->findOrFail($projectId);
+
+        $proposal = $project->originalProposal ?? $project->proposalViaBrief;
+        $totalRevisionLimit = (int) ($proposal?->revision_limit ?? 2);
+        $minRemaining = $project->deliverables->min('remaining_revisions');
+        $projectRemainingRevisions = $minRemaining !== null ? (int) $minRemaining : $totalRevisionLimit;
 
         return [
             'id' => (string) $project->id,
             'title' => $project->title,
             'status' => $project->status,
+            'revision_limit' => $totalRevisionLimit,
+            'remaining_revisions' => $projectRemainingRevisions,
             'deliverables' => $project->deliverables->map(fn(Deliverable $d) => [
                 'id' => (string) $d->id,
                 'title' => $d->title,
                 'status' => $d->status,
                 'file_path' => $d->file_path,
+                'file_name' => $d->file_path ? basename($d->file_path) : null,
+                'download_url' => $d->file_path ? route('company.projects.deliverables.download', [$project->id, $d->id]) : null,
+                'view_url' => $d->file_path ? route('company.projects.deliverables.view', [$project->id, $d->id]) : null,
                 'external_link' => $d->external_link,
                 'notes' => $d->notes,
                 'client_feedback' => $d->client_feedback,
-                'remaining_revisions' => $d->remaining_revisions,
+                'remaining_revisions' => $projectRemainingRevisions,
+                'submitted_at' => $d->updated_at ? $d->updated_at->locale('ar')->translatedFormat('d F Y - h:i a') : null,
             ]),
         ];
     }

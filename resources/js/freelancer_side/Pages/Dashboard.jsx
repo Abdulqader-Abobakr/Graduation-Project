@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from '@inertiajs/react';
 import ProposalFormModal from '../Components/ProposalFormModal';
 import CompanyProfileModal from '../Components/CompanyProfileModal';
@@ -31,14 +31,50 @@ const categoryLabels = {
   content: 'كتابة وإعداد محتوى',
 };
 
+const categoryGroupMap = {
+  tech: ['tech', 'dev', 'web_mobile_development', 'it', 'software', 'programming'],
+  design: ['design', 'graphic_design_branding', 'branding', 'ui_ux', 'creative'],
+  marketing: ['marketing', 'marketing_services', 'digital_marketing', 'social_media_management', 'seo'],
+  writing: ['writing', 'content', 'translation', 'copywriting'],
+  business: ['business', 'business_consulting', 'business_plan_preparation', 'market_research', 'analytics', 'consulting'],
+};
+
 export default function Dashboard({
   auth,
   statsData = {},
-  openBriefs
+  openBriefs,
+  activeFilter = 'all',
+  search = '',
 }) {
   const [briefsList, setBriefsList] = useState(() => (Array.isArray(openBriefs) ? openBriefs : []));
   const [selectedBriefForProposal, setSelectedBriefForProposal] = useState(null);
   const [selectedCompanyForProfile, setSelectedCompanyForProfile] = useState(null);
+
+  const filteredBriefs = useMemo(() => {
+    const q = (search || '').trim().toLowerCase();
+
+    return briefsList.filter((brief) => {
+      // 1. Search Query matching
+      if (q) {
+        const title = (brief.title || '').toLowerCase();
+        const desc = (brief.description || '').toLowerCase();
+        const client = (brief.client || brief.clientName || brief.companyName || '').toLowerCase();
+        const catLabel = (categoryLabels[brief.category] || '').toLowerCase();
+        const matches = title.includes(q) || desc.includes(q) || client.includes(q) || catLabel.includes(q);
+        if (!matches) return false;
+      }
+
+      // 2. Category Filter matching
+      if (!activeFilter || activeFilter === 'all') return true;
+      const cat = (brief.category || '').toLowerCase();
+      if (cat === activeFilter.toLowerCase()) return true;
+      const group = categoryGroupMap[activeFilter];
+      if (group && (group.includes(cat) || group.some((k) => cat.includes(k)))) {
+        return true;
+      }
+      return cat.includes(activeFilter.toLowerCase());
+    });
+  }, [briefsList, activeFilter, search]);
 
   useEffect(() => {
     if (Array.isArray(openBriefs)) {
@@ -149,11 +185,11 @@ export default function Dashboard({
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg sm:text-xl font-semibold text-slate-800">فرص متاحة لك</h2>
-          <span className="text-sm font-medium text-slate-500">{briefsList.length} طلب</span>
+          <span className="text-sm font-medium text-slate-500">{filteredBriefs.length} طلب</span>
         </div>
-        {briefsList.length > 0 ? (
+        {filteredBriefs.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {briefsList.map((brief) => {
+            {filteredBriefs.map((brief) => {
               const avatarUrl = normalizeImageUrl(brief.avatar);
               const displayName = brief.companyName || brief.client || 'شركة';
 
@@ -251,8 +287,14 @@ export default function Dashboard({
             })}
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
-            لا توجد طلبات متاحة حالياً
+          <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-8 text-center text-sm text-gray-500 font-medium">
+            {search && activeFilter !== 'all'
+              ? 'لا توجد طلبات مطابقة للبحث ضمن هذا التخصص'
+              : search
+                ? 'لا توجد طلبات مطابقة للبحث'
+                : activeFilter !== 'all'
+                  ? 'لا توجد طلبات متاحة في هذا التخصص حالياً'
+                  : 'لا توجد طلبات متاحة حالياً'}
           </div>
         )}
       </section>

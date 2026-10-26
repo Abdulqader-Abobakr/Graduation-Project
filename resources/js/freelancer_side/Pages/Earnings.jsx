@@ -1,37 +1,86 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
-  DollarSign,
   Wallet,
   ArrowDownToLine,
-  Clock,
   TrendingUp,
   CheckCircle2,
   AlertCircle,
-  Download,
-  Calendar,
-  ChevronDown,
   X,
   Landmark,
   Smartphone,
   Send
 } from 'lucide-react';
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
-} from 'recharts';
 import { useForm, usePage } from '@inertiajs/react';
 
-const Earnings = ({ pageTitle, wallet = {}, transactions = [], chartData = {} }) => {
-  const [viewType, setViewType] = useState('monthly'); // 'monthly' or 'daily'
-
+const Earnings = ({
+  pageTitle,
+  wallet = {},
+  transactions = [],
+  chartData = {},
+  activeFilter = 'all',
+  onFilterChange,
+  search = '',
+}) => {
   // Payout Modal State
   const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
   const availableBalance = wallet.available_balance || 0;
+
+  const filteredTransactions = useMemo(() => {
+    const q = (search || '').trim().toLowerCase();
+
+    const now = new Date();
+    // Start of today (00:00:00 local time)
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    // 7 days ago
+    const startOfWeek = now.getTime() - (7 * 24 * 60 * 60 * 1000);
+    // Start of this month
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    // Start and end of last month
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+    const endOfLastMonth = startOfMonth;
+    // Start of this year
+    const startOfYear = new Date(now.getFullYear(), 0, 1).getTime();
+
+    return transactions.filter((tx) => {
+      // 1. Text Search matching
+      if (q) {
+        const desc = (tx.desc || '').toLowerCase();
+        const client = (tx.client || '').toLowerCase();
+        const amount = (tx.amount || '').toLowerCase();
+        const date = (tx.date || '').toLowerCase();
+        const status = (tx.status || '').toLowerCase();
+        const matches = desc.includes(q) || client.includes(q) || amount.includes(q) || date.includes(q) || status.includes(q);
+        if (!matches) return false;
+      }
+
+      // 2. Date Period Filtering
+      if (!activeFilter || activeFilter === 'all') return true;
+
+      let txMs = 0;
+      if (tx.timestamp) {
+        txMs = tx.timestamp > 1e11 ? tx.timestamp : tx.timestamp * 1000;
+      } else if (tx.raw_date || tx.date) {
+        txMs = new Date(tx.raw_date || tx.date).getTime();
+      }
+
+      if (!txMs || isNaN(txMs)) return true;
+
+      switch (activeFilter) {
+        case 'today':
+          return txMs >= startOfToday;
+        case 'week':
+          return txMs >= startOfWeek;
+        case 'month':
+          return txMs >= startOfMonth;
+        case 'last_month':
+          return txMs >= startOfLastMonth && txMs < endOfLastMonth;
+        case 'year':
+          return txMs >= startOfYear;
+        default:
+          return true;
+      }
+    });
+  }, [transactions, activeFilter, search]);
 
   const { props } = usePage();
   const flash = props.flash ?? {};
@@ -52,6 +101,7 @@ const Earnings = ({ pageTitle, wallet = {}, transactions = [], chartData = {} })
     details: {
       bankCurrency: '',
       bankAccount: '',
+      accountName: '',
       fullName: '',
       phoneNumber: '',
     }
@@ -69,6 +119,7 @@ const Earnings = ({ pageTitle, wallet = {}, transactions = [], chartData = {} })
     setData('details', {
       bankCurrency: '',
       bankAccount: '',
+      accountName: '',
       fullName: '',
       phoneNumber: '',
     });
@@ -87,7 +138,7 @@ const Earnings = ({ pageTitle, wallet = {}, transactions = [], chartData = {} })
     if (!data.method) return false;
 
     if (data.method === 'bank') {
-      if (!data.details.bankCurrency || !data.details.bankAccount) return false;
+      if (!data.details.bankCurrency || !data.details.bankAccount || !data.details.accountName) return false;
     } else if (data.method === 'jeeb' || data.method === 'local') {
       if (!data.details.fullName || !data.details.phoneNumber) return false;
     }
@@ -142,11 +193,11 @@ const Earnings = ({ pageTitle, wallet = {}, transactions = [], chartData = {} })
       <header className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 text-start">
         <div className="space-y-1">
           <h1 className="text-3xl font-black bg-gradient-to-r from-[#2a7de1] to-[#2a7de1] bg-clip-text text-transparent tracking-tight">{pageTitle || 'الأرباح'}</h1>
-          <p className="text-slate-500 font-medium text-sm">تابع إيراداتك، الأرصدة المعلقة في حساب الضمان (Escrow)، واطلب سحب أرباحك المتاحة.</p>
+          <p className="text-slate-500 font-medium text-sm">تابع إيراداتك ومسحوباتك، واطلب سحب أرباحك المتاحة بكل سهولة.</p>
         </div>
         <button
           onClick={() => setIsPayoutModalOpen(true)}
-          className="flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-[#2a7de1] to-[#1f6fd4] hover:from-[#2a7de1] hover:to-[#2a7de1] text-white rounded-2xl font-bold shadow-md shadow-[#2a7de1]/20 transition-all active:scale-95 group shrink-0"
+          className="flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-[#2a7de1] to-[#1f6fd4] hover:from-[#2a7de1] hover:to-[#2a7de1] text-white rounded-2xl font-bold shadow-md shadow-[#2a7de1]/20 transition-all active:scale-95 group shrink-0 cursor-pointer"
         >
           <ArrowDownToLine size={20} className="transition-transform group-hover:translate-y-0.5" />
           طلب سحب رصيد
@@ -154,7 +205,7 @@ const Earnings = ({ pageTitle, wallet = {}, transactions = [], chartData = {} })
       </header>
 
       {/* SECTION 2: Financial Overview Cards */}
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-12 text-start">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 text-start">
         {/* Total Lifetime Earnings */}
         <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
           <div className="w-14 h-14 bg-slate-50 text-slate-700 rounded-2xl flex items-center justify-center mb-6">
@@ -200,102 +251,12 @@ const Earnings = ({ pageTitle, wallet = {}, transactions = [], chartData = {} })
             طلبات السحب المُعتمدة والمعلقة
           </div>
         </div>
-
-        {/* Pending/Escrowed */}
-        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-          <div className="w-14 h-14 bg-[#ffb548]/10 text-slate-700 rounded-2xl flex items-center justify-center mb-6">
-            <Clock size={28} />
-          </div>
-          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">معلق في حساب الضمان (Escrow)</p>
-          <div className="flex items-baseline gap-1 mb-2">
-            <span className="text-3xl font-black bg-gradient-to-r from-[#2a7de1] to-[#2a7de1] bg-clip-text text-transparent flex items-baseline gap-1">
-              {(wallet.pending_balance || 0).toLocaleString()} <span className="text-base font-bold text-slate-400">ر.ي</span>
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-700 bg-[#ffb548]/10 px-3 py-1 rounded-full w-fit">
-            <AlertCircle size={12} />
-            أموال آمنة بانتظار تسليم المشاريع
-          </div>
-        </div>
-      </div>
-
-      {/* SECTION 3: Advanced Analytics Chart */}
-      <div className="max-w-6xl mx-auto mb-12 text-start">
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8">
-          <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-            <div>
-              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-3">
-                <span className="w-1.5 h-6 bg-[#2a7de1] rounded-full"></span>
-                تحليل الأرباح
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">نمو الأرباح الإجمالي للفترة المحددة</p>
-            </div>
-
-            <div className="flex items-center bg-slate-50 p-1 rounded-xl shrink-0">
-              <button
-                onClick={() => setViewType('monthly')}
-                className={`px-6 py-2 text-xs font-bold rounded-lg transition-all ${viewType === 'monthly' ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                عرض شهري
-              </button>
-              <button
-                onClick={() => setViewType('daily')}
-                className={`px-6 py-2 text-xs font-bold rounded-lg transition-all ${viewType === 'daily' ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                عرض يومي
-              </button>
-            </div>
-          </div>
-
-          <div className="h-80 w-full" dir="ltr">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={viewType === 'monthly' ? (chartData.monthly || []) : (chartData.daily || [])} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2a7de1" stopOpacity={0.1} />
-                    <stop offset="95%" stopColor="#2a7de1" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis
-                  dataKey="name"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }}
-                  dy={10}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }}
-                  tickFormatter={(val) => `${val}`}
-                />
-                <Tooltip
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
-                  itemStyle={{ color: '#2a7de1', fontWeight: 800, fontSize: '14px' }}
-                  labelStyle={{ fontWeight: 700, color: '#64748b', marginBottom: '4px' }}
-                  formatter={(value) => [`${value} ر.ي`, 'الأرباح']}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#2a7de1"
-                  strokeWidth={4}
-                  fillOpacity={1}
-                  fill="url(#colorValue)"
-                  animationDuration={1500}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
       </div>
 
       {/* SECTION 4: Transaction Table */}
       <div className="max-w-6xl mx-auto text-start">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-black text-slate-800">سجل المعاملات الأخيرة</h2>
-          <button className="text-sm font-bold text-slate-700 hover:underline">عرض الكل</button>
         </div>
 
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
@@ -311,8 +272,8 @@ const Earnings = ({ pageTitle, wallet = {}, transactions = [], chartData = {} })
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 text-start">
-                {transactions.length > 0 ? (
-                  transactions.map((tx) => (
+                {filteredTransactions.length > 0 ? (
+                  filteredTransactions.map((tx) => (
                     <TransactionRow 
                       key={tx.id} 
                       date={tx.date} 
@@ -325,7 +286,15 @@ const Earnings = ({ pageTitle, wallet = {}, transactions = [], chartData = {} })
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="px-8 py-10 text-center text-sm font-bold text-slate-400">لا توجد معاملات بعد.</td>
+                    <td colSpan="5" className="px-8 py-10 text-center text-sm font-bold text-slate-400">
+                      {search && activeFilter !== 'all'
+                        ? 'لا توجد معاملات مطابقة للبحث خلال هذه الفترة الزمنية.'
+                        : search
+                          ? 'لا توجد معاملات مطابقة للبحث.'
+                          : activeFilter !== 'all'
+                            ? 'لا توجد معاملات خلال الفترة الزمنية المحددة.'
+                            : 'لا توجد معاملات بعد.'}
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -389,27 +358,29 @@ const Earnings = ({ pageTitle, wallet = {}, transactions = [], chartData = {} })
                   طريقة السحب
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {/* Bank Transfer */}
+                  {/* Kuraimi Bank */}
                   <button
                     type="button"
                     onClick={() => handleMethodSelect('bank')}
-                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all ${data.method === 'bank'
-                        ? 'border-[#2a7de1] bg-[#2a7de1]/5 text-slate-700'
+                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                      data.method === 'bank'
+                        ? 'border-[#2a7de1] bg-[#2a7de1]/5 text-slate-700 shadow-xs'
                         : 'border-slate-100 bg-white text-slate-500 hover:border-slate-200'
-                      }`}
+                    }`}
                   >
                     <Landmark size={24} />
-                    <span className="text-xs font-bold">تحويل بنكي</span>
+                    <span className="text-xs font-bold">بنك الكريمي</span>
                   </button>
 
                   {/* Jeeb Wallet */}
                   <button
                     type="button"
                     onClick={() => handleMethodSelect('jeeb')}
-                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all ${data.method === 'jeeb'
-                        ? 'border-[#2a7de1] bg-[#2a7de1]/5 text-slate-700'
+                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                      data.method === 'jeeb'
+                        ? 'border-[#2a7de1] bg-[#2a7de1]/5 text-slate-700 shadow-xs'
                         : 'border-slate-100 bg-white text-slate-500 hover:border-slate-200'
-                      }`}
+                    }`}
                   >
                     <Smartphone size={24} />
                     <span className="text-xs font-bold">محفظة جيب</span>
@@ -419,10 +390,11 @@ const Earnings = ({ pageTitle, wallet = {}, transactions = [], chartData = {} })
                   <button
                     type="button"
                     onClick={() => handleMethodSelect('local')}
-                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all ${data.method === 'local'
-                        ? 'border-[#2a7de1] bg-[#2a7de1]/5 text-slate-700'
+                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                      data.method === 'local'
+                        ? 'border-[#2a7de1] bg-[#2a7de1]/5 text-slate-700 shadow-xs'
                         : 'border-slate-100 bg-white text-slate-500 hover:border-slate-200'
-                      }`}
+                    }`}
                   >
                     <Send size={24} />
                     <span className="text-xs font-bold text-center leading-tight">حوالة شبكة<br />محلية</span>
@@ -438,30 +410,40 @@ const Earnings = ({ pageTitle, wallet = {}, transactions = [], chartData = {} })
                   {data.method === 'bank' && (
                     <>
                       <div className="space-y-2">
-                        <label className="block text-sm font-bold text-slate-700">العملة</label>
+                        <label className="block text-sm font-bold text-slate-700">عملة الحساب في الكريمي</label>
                         <select
                           value={data.details.bankCurrency}
                           onChange={(e) => handleDetailChange('bankCurrency', e.target.value)}
-                          className="w-full bg-white border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-4 focus:ring-[#2a7de1]/15 focus:border-[#2a7de1] block p-3 transition-all outline-none"
+                          className="w-full bg-white border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-4 focus:ring-[#2a7de1]/15 focus:border-[#2a7de1] block p-3 transition-all outline-none cursor-pointer"
                         >
                           <option value="" disabled>اختر العملة</option>
-                          <option value="YER">ريال يمني</option>
-                          <option value="SAR">ريال سعودي</option>
-                          <option value="USD">دولار أمريكي</option>
+                          <option value="YER">ريال يمني (YER)</option>
+                          <option value="SAR">ريال سعودي (SAR)</option>
+                          <option value="USD">دولار أمريكي (USD)</option>
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <label className="block text-sm font-bold text-slate-700">رقم الحساب</label>
+                        <label className="block text-sm font-bold text-slate-700">رقم حساب الكريمي (المميز)</label>
                         <input
                           type="text"
                           value={data.details.bankAccount}
                           onChange={(e) => handleDetailChange('bankAccount', e.target.value)}
-                          placeholder="أدخل رقم الحساب"
+                          placeholder="أدخل رقم حساب الكريمي المميز"
+                          className="w-full bg-white border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-4 focus:ring-[#2a7de1]/15 focus:border-[#2a7de1] block p-3 transition-all outline-none"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-sm font-bold text-slate-700">اسم صاحب الحساب لدى بنك الكريمي</label>
+                        <input
+                          type="text"
+                          value={data.details.accountName}
+                          onChange={(e) => handleDetailChange('accountName', e.target.value)}
+                          placeholder="الاسم الرباعي كما هو مسجل في بنك الكريمي"
                           className="w-full bg-white border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-4 focus:ring-[#2a7de1]/15 focus:border-[#2a7de1] block p-3 transition-all outline-none"
                         />
                         <p className="text-[11px] text-slate-400 font-medium flex items-center gap-1 mt-1">
                           <AlertCircle size={12} />
-                          الرجاء إدخال رقم الحساب المطابق للعملة المحددة
+                          الرجاء التأكد من تطابق رقم الحساب واسم المستفيد في بنك الكريمي مع العملة المحددة
                         </p>
                       </div>
                     </>

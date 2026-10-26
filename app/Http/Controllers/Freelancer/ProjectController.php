@@ -77,6 +77,10 @@ class ProjectController extends Controller
 
             $conversation = $conversations->get($project->client_id);
 
+            // Compute project-wide remaining revisions
+            $minRemaining = $project->deliverables->min('remaining_revisions');
+            $projectRemainingRevisions = $minRemaining !== null ? (int) $minRemaining : 2;
+
             // Compute tasks with active/locked flow
             $tasks = [];
             $hasActive = false;
@@ -113,7 +117,7 @@ class ProjectController extends Controller
                     'title'              => $task->title,
                     'status'             => $status,
                     'clientFeedback'     => $task->client_feedback,
-                    'remainingRevisions' => $task->remaining_revisions,
+                    'remainingRevisions' => $projectRemainingRevisions,
                 ];
             }
 
@@ -137,6 +141,7 @@ class ProjectController extends Controller
                 'completedTasks'       => $completedTasks,
                 'activeTaskIndex'      => $activeTaskIndex,
                 'activeTaskTitle'      => $activeTaskTitle,
+                'remainingRevisions'   => $projectRemainingRevisions,
                 'chatId'               => $conversation ? (string) $conversation->id : null,
                 'tasks'                => $tasks,
             ];
@@ -176,6 +181,9 @@ class ProjectController extends Controller
         abort_if($project->freelancer_id !== auth()->id(), 403);
 
         $proposal = $project->originalProposal ?? $project->proposalViaBrief;
+        $totalRevisionLimit = (int) ($proposal?->revision_limit ?? 2);
+        $minRemaining = $project->deliverables->min('remaining_revisions');
+        $projectRemainingRevisions = $minRemaining !== null ? (int) $minRemaining : $totalRevisionLimit;
 
         $conversation = Conversation::where('freelancer_id', auth()->id())
             ->where('client_id', $project->client_id)
@@ -221,7 +229,7 @@ class ProjectController extends Controller
                 'status'             => $status,
                 'rawStatus'          => $d->status,
                 'clientFeedback'     => $d->client_feedback,
-                'remainingRevisions' => $d->remaining_revisions,
+                'remainingRevisions' => $projectRemainingRevisions,
                 'notes'              => $d->notes,
                 'filePath'           => $d->file_path,
                 'fileName'           => $d->file_path ? basename($d->file_path) : null,
@@ -233,15 +241,17 @@ class ProjectController extends Controller
         }
 
         $projectData = [
-            'id'             => (string) $project->id,
-            'title'          => $project->title,
-            'status'         => $project->status,
-            'projectValue'   => $proposal ? number_format($proposal->price, 0) : '0',
-            'progress'       => $progress,
-            'completedTasks' => $completedTasks,
-            'totalTasks'     => $totalTasks,
-            'activeTaskId'   => $activeTaskId,
-            'chatId'         => $conversation ? (string) $conversation->id : null,
+            'id'                 => (string) $project->id,
+            'title'              => $project->title,
+            'status'             => $project->status,
+            'projectValue'       => $proposal ? number_format($proposal->price, 0) : '0',
+            'progress'           => $progress,
+            'completedTasks'     => $completedTasks,
+            'totalTasks'         => $totalTasks,
+            'activeTaskId'       => $activeTaskId,
+            'revisionLimit'      => $totalRevisionLimit,
+            'remainingRevisions' => $projectRemainingRevisions,
+            'chatId'             => $conversation ? (string) $conversation->id : null,
 
             'client' => [
                 'id'          => (string) $project->client_id,
@@ -257,7 +267,7 @@ class ProjectController extends Controller
             'originalProposal' => $proposal ? [
                 'title'           => $proposal->title ?? $project->title,
                 'totalPrice'      => number_format($proposal->price, 0),
-                'revisions'       => $proposal->revision_limit ? "{$proposal->revision_limit} تعديلات" : 'غير محدد',
+                'revisions'       => $proposal->revision_limit !== null ? "{$proposal->revision_limit} تعديلات (للمشروع كامل)" : 'غير محدد',
                 'timeline'        => $proposal->timeline ?? 'حسب الاتفاق',
                 'validity'        => $proposal->validity ?? '7 أيام',
                 'additionalTerms' => $proposal->additional_terms ?? null,
@@ -310,18 +320,22 @@ class ProjectController extends Controller
                 'max:51200',   // 50 MB
                 'mimes:pdf,zip,rar,png,jpg,jpeg,webp,gif,svg,mp4,mov,fig,sketch,ai,psd,xd,docx,xlsx,pptx',
             ],
-            'external_link' => 'nullable|url|max:2048',
+            'external_link' => [
+                'nullable',
+                'string',
+                'max:2048',
+                'regex:/^https?:\/\/(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}(?::\d{1,5})?(?:[\/?#][^\s"\'<>`\\^]*)?$/i',
+            ],
             'notes'         => 'nullable|string|max:5000',
             'task_id'       => 'required|uuid',
+        ], [
+            'external_link.regex' => 'صيغة الرابط غير صحيحة أو تحتوي على محارف غير آمنة. يرجى إدخال رابط صالح يبدأ بـ http:// أو https://',
+            'file.mimes'          => 'نوع الملف غير مدعوم.',
+            'file.max'            => 'الحد الأقصى لحجم الملف هو 50 ميجابايت.',
         ]);
 
-        // Must have at least a file OR an external_link
-        if (!$request->hasFile('file') && !$request->filled('external_link')) {
-            return back()->withErrors(['file' => 'يجب إرفاق ملف أو رابط خارجي على الأقل.']);
-        }
-
         $project = Project::findOrFail($projectId);
-        abort_if($project->freelancer_id !== auth()->id(), 403);
+        abort_if((string) $project->freelancer_id !== (string) auth()->id(), 403);
 
         $deliverable = Deliverable::where('project_id', $projectId)
             ->where('id', $request->task_id)
@@ -331,11 +345,30 @@ class ProjectController extends Controller
             })
             ->firstOrFail();
 
-        // ── Upload file to Supabase Storage ──────────────────────────────────
-        $filePath  = null;
-        $publicUrl = null;
+        $newFileUploaded = $request->hasFile('file') && $request->file('file')->isValid();
+        $hasNewLink      = $request->filled('external_link');
+        $hasExistingFile = !empty($deliverable->file_path);
+        $hasExistingLink = !empty($deliverable->external_link);
 
-        if ($request->hasFile('file') && $request->file('file')->isValid()) {
+        // Must have at least a file OR an external link (either newly submitted or previously existing)
+        if (!$newFileUploaded && !$hasNewLink && !$hasExistingFile && !$hasExistingLink) {
+            return back()->withErrors(['file' => 'يجب إرفاق ملف أو رابط خارجي على الأقل.']);
+        }
+
+        // ── 1. Handle File Upload / Revision ──────────────────────────────────
+        // Default: keep existing file intact if no new file is uploaded
+        $filePath = $deliverable->file_path;
+
+        if ($newFileUploaded) {
+            // If new file is uploaded: remove previous file from storage and store new one
+            if ($deliverable->file_path) {
+                try {
+                    Storage::disk('deliverables-files')->delete($deliverable->file_path);
+                } catch (\Exception $e) {
+                    \Log::warning('Failed to delete previous deliverable file: ' . $e->getMessage());
+                }
+            }
+
             $uploadedFile = $request->file('file');
 
             // Build a consistent, human-readable filename:
@@ -355,15 +388,7 @@ class ProjectController extends Controller
             try {
                 // putFileAs(directory, file, filename) — stores inside the bucket defined in disk config
                 Storage::disk('deliverables-files')->putFileAs($storagePath, $uploadedFile, $fileName);
-
-                // Store the relative path (bucket-relative) — useful for constructing URLs later
-                $filePath  = "{$storagePath}/{$fileName}";
-
-                // Build the public URL for direct access
-                $publicUrl = rtrim(env('SUPABASE_ENDPOINT'), '/')
-                    . '/../object/public/'
-                    . env('SUPABASE_BUCKET', 'deliverables-files')
-                    . '/' . $filePath;
+                $filePath = "{$storagePath}/{$fileName}";
             } catch (\Exception $e) {
                 return back()->withErrors([
                     'file' => 'فشل رفع الملف إلى التخزين. يرجى المحاولة مجدداً. (' . $e->getMessage() . ')'
@@ -371,12 +396,25 @@ class ProjectController extends Controller
             }
         }
 
-        // ── Save to DB ────────────────────────────────────────────────────────
+        // ── 2. Handle External Link ──────────────────────────────────────────
+        // If a new link is provided: update it (keeping existing file if no new file).
+        // If NO new link is provided: keep existing link if it exists.
+        // If both are provided: both are updated/replaced.
+        $sanitizedLink = $hasNewLink
+            ? trim(strip_tags((string) $request->external_link))
+            : $deliverable->external_link;
+
+        // ── 3. Handle Notes ──────────────────────────────────────────────────
+        $sanitizedNotes = $request->filled('notes')
+            ? trim(strip_tags((string) $request->notes))
+            : $deliverable->notes;
+
+        // ── 4. Save to DB ────────────────────────────────────────────────────
         $deliverable->update([
-            'file_path'     => $filePath,      // relative path inside bucket
-            'external_link' => $request->external_link ?: null,
-            'notes'         => $request->notes ?: null,
-            'status'        => 'submitted',    // awaiting client review
+            'file_path'     => $filePath,
+            'external_link' => $sanitizedLink,
+            'notes'         => $sanitizedNotes,
+            'status'        => 'submitted',    // resets to submitted awaiting client review
         ]);
 
         // ── Auto-complete project when all deliverables are submitted/approved ─
@@ -405,8 +443,13 @@ class ProjectController extends Controller
     public function submitTask(Request $request, $projectId, $taskId)
     {
         $request->validate([
-            'external_link' => 'nullable|url',
-            'notes'         => 'nullable|string',
+            'external_link' => [
+                'nullable',
+                'string',
+                'max:2048',
+                'regex:/^https?:\/\/(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}(?::\d{1,5})?(?:[\/?#][^\s"\'<>`\\^]*)?$/i',
+            ],
+            'notes'         => 'nullable|string|max:5000',
         ]);
 
         $project = Project::findOrFail($projectId);
@@ -416,7 +459,8 @@ class ProjectController extends Controller
 
         $deliverable->update([
             'status'          => 'completed',
-            'client_feedback' => $request->notes,
+            'external_link'   => $request->filled('external_link') ? trim(strip_tags((string) $request->external_link)) : null,
+            'client_feedback' => $request->filled('notes') ? trim(strip_tags((string) $request->notes)) : null,
         ]);
 
         $nextDeliverable = Deliverable::where('project_id', $projectId)
@@ -436,29 +480,82 @@ class ProjectController extends Controller
     /**
      * Download deliverable file securely for freelancer.
      */
-    public function downloadDeliverable(Request $request, Project $project, Deliverable $deliverable)
+    public function downloadDeliverable(Request $request, $project, $deliverable)
     {
-        abort_if($project->freelancer_id !== auth()->id(), 403, 'غير مصرح لك.');
-        abort_if($deliverable->project_id !== $project->id, 404);
-        abort_if(!$deliverable->file_path, 404, 'الملف غير موجود.');
+        $projectModel = $project instanceof Project ? $project : Project::findOrFail($project);
+        abort_if((string) $projectModel->freelancer_id !== (string) auth()->id(), 403, 'غير مصرح لك.');
 
-        return Storage::disk('deliverables-files')->download(
-            $deliverable->file_path,
-            basename($deliverable->file_path)
-        );
+        $deliverableModel = $deliverable instanceof Deliverable 
+            ? $deliverable 
+            : Deliverable::where('project_id', $projectModel->id)->findOrFail($deliverable);
+
+        abort_if(!$deliverableModel->file_path, 404, 'الملف غير موجود.');
+
+        $rawPath = (string) $deliverableModel->file_path;
+        if (filter_var($rawPath, FILTER_VALIDATE_URL)) {
+            return redirect()->away($rawPath);
+        }
+
+        $cleanPath = ltrim($rawPath, '/');
+        if (preg_match('#(?:deliverables-files/)(.+)#', $cleanPath, $matches)) {
+            $cleanPath = $matches[1];
+        }
+
+        $fileName = basename($cleanPath);
+        $userFriendlyName = preg_replace('/^[a-f0-9\-]+-\d+-/i', '', $fileName) ?: $fileName;
+
+        try {
+            if (Storage::disk('deliverables-files')->exists($cleanPath)) {
+                return Storage::disk('deliverables-files')->download($cleanPath, $userFriendlyName);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Freelancer download S3 error: ' . $e->getMessage());
+        }
+
+        $publicUrl = 'https://uvgwjjpzkzmgeolkqnuf.supabase.co/storage/v1/object/public/deliverables-files/' . $cleanPath;
+        return redirect()->away($publicUrl);
     }
 
     /**
      * View deliverable file securely (inline) for freelancer.
      */
-    public function viewDeliverable(Request $request, Project $project, Deliverable $deliverable)
+    public function viewDeliverable(Request $request, $project, $deliverable)
     {
-        abort_if($project->freelancer_id !== auth()->id(), 403, 'غير مصرح لك.');
-        abort_if($deliverable->project_id !== $project->id, 404);
-        abort_if(!$deliverable->file_path, 404, 'الملف غير موجود.');
+        $projectModel = $project instanceof Project ? $project : Project::findOrFail($project);
+        abort_if((string) $projectModel->freelancer_id !== (string) auth()->id(), 403, 'غير مصرح لك.');
 
-        return Storage::disk('deliverables-files')->response(
-            $deliverable->file_path
-        );
+        $deliverableModel = $deliverable instanceof Deliverable 
+            ? $deliverable 
+            : Deliverable::where('project_id', $projectModel->id)->findOrFail($deliverable);
+
+        abort_if(!$deliverableModel->file_path, 404, 'الملف غير موجود.');
+
+        $rawPath = (string) $deliverableModel->file_path;
+        if (filter_var($rawPath, FILTER_VALIDATE_URL)) {
+            return redirect()->away($rawPath);
+        }
+
+        $cleanPath = ltrim($rawPath, '/');
+        if (preg_match('#(?:deliverables-files/)(.+)#', $cleanPath, $matches)) {
+            $cleanPath = $matches[1];
+        }
+
+        $ext = strtolower(pathinfo($cleanPath, PATHINFO_EXTENSION));
+        $archiveOrDesignTypes = ['zip', 'rar', '7z', 'tar', 'gz', 'psd', 'ai', 'xd', 'fig', 'sketch'];
+
+        if (in_array($ext, $archiveOrDesignTypes)) {
+            return $this->downloadDeliverable($request, $projectModel, $deliverableModel);
+        }
+
+        try {
+            if (Storage::disk('deliverables-files')->exists($cleanPath)) {
+                return Storage::disk('deliverables-files')->response($cleanPath);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Freelancer view S3 error: ' . $e->getMessage());
+        }
+
+        $publicUrl = 'https://uvgwjjpzkzmgeolkqnuf.supabase.co/storage/v1/object/public/deliverables-files/' . $cleanPath;
+        return redirect()->away($publicUrl);
     }
 }

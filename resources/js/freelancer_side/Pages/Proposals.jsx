@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import ProposalDetailsModal from '../Components/ProposalDetailsModal';
 import ProposalFormModal from '../Components/ProposalFormModal';
 import CompanyProfileModal from '../Components/CompanyProfileModal';
@@ -36,7 +36,10 @@ const categoryLabels = {
 
 export default function Proposals({
   directOrders,
-  sentProposals
+  sentProposals,
+  activeFilter = 'all',
+  onFilterChange,
+  search = '',
 }) {
   const [ordersList, setOrdersList] = useState(() => (Array.isArray(directOrders) ? directOrders : []));
   const [proposalsList, setProposalsList] = useState(() => (Array.isArray(sentProposals) ? sentProposals : []));
@@ -85,9 +88,6 @@ export default function Proposals({
     };
   }, []);
 
-  const safeDirectOrders = ordersList;
-  const safeSentProposals = proposalsList;
-
   const { url } = usePage();
   const resolveTab = (searchUrl) => {
     try {
@@ -100,6 +100,46 @@ export default function Proposals({
   const initialTab = typeof window !== 'undefined' ? resolveTab(url) : 'direct';
 
   const [activeTab, setActiveTab] = useState(initialTab);
+
+  const effectiveTab = useMemo(() => {
+    if (activeFilter === 'direct') return 'direct';
+    if (activeFilter === 'sent' || activeFilter === 'pending' || activeFilter === 'accepted' || activeFilter === 'rejected') {
+      return 'sent';
+    }
+    return activeTab;
+  }, [activeFilter, activeTab]);
+
+  const safeDirectOrders = useMemo(() => {
+    const q = (search || '').trim().toLowerCase();
+    return ordersList.filter((order) => {
+      if (!q) return true;
+      const title = (order.service || order.title || '').toLowerCase();
+      const client = (order.client || order.companyName || order.clientName || '').toLowerCase();
+      const desc = (order.description || '').toLowerCase();
+      return title.includes(q) || client.includes(q) || desc.includes(q);
+    });
+  }, [ordersList, search]);
+
+  const safeSentProposals = useMemo(() => {
+    const q = (search || '').trim().toLowerCase();
+    return proposalsList.filter((p) => {
+      // 1. Text Search matching
+      if (q) {
+        const title = (p.title || '').toLowerCase();
+        const client = (p.client || '').toLowerCase();
+        const price = String(p.price || '').toLowerCase();
+        if (!title.includes(q) && !client.includes(q) && !price.includes(q)) {
+          return false;
+        }
+      }
+
+      // 2. Filter matching
+      if (activeFilter === 'pending' || activeFilter === 'accepted' || activeFilter === 'rejected') {
+        return p.statusType === activeFilter;
+      }
+      return true;
+    });
+  }, [proposalsList, activeFilter, search]);
   const [selectedProposal, setSelectedProposal] = useState(null);
   const [proposalActionId, setProposalActionId] = useState(null);
   const [activeProposalModal, setActiveProposalModal] = useState(null);
@@ -161,6 +201,9 @@ export default function Proposals({
 
   const switchTab = (tab) => {
     setActiveTab(tab);
+    if (activeFilter !== 'all') {
+      onFilterChange?.(tab);
+    }
     if (typeof window !== 'undefined') {
       try {
         const newUrl = new URL(window.location.href);
@@ -209,12 +252,12 @@ export default function Proposals({
       <div className="flex border-b border-gray-200 mb-8 gap-8 overflow-x-auto whitespace-nowrap">
         <TabButton
           label={`الطلبات المباشرة (${safeDirectOrders.length})`}
-          active={activeTab === 'direct'}
+          active={effectiveTab === 'direct'}
           onClick={() => switchTab('direct')}
         />
         <TabButton
           label={`العروض المرسلة (${safeSentProposals.length})`}
-          active={activeTab === 'sent'}
+          active={effectiveTab === 'sent'}
           onClick={() => switchTab('sent')}
         />
       </div>
@@ -222,7 +265,7 @@ export default function Proposals({
       {/* SECTION 3: Tab Content Area */}
       <div>
         {/* A. Content for "الطلبات" (Orders) */}
-        {activeTab === 'direct' && (
+        {effectiveTab === 'direct' && (
           <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {safeDirectOrders.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -247,7 +290,7 @@ export default function Proposals({
         )}
 
         {/* C. Content for "العروض المرسلة" (Sent Proposals) */}
-        {activeTab === 'sent' && (
+        {effectiveTab === 'sent' && (
           <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {safeSentProposals.length > 0 ? (
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden divide-y divide-gray-100">

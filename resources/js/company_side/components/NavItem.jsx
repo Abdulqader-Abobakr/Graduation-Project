@@ -63,7 +63,7 @@ export default function Sidebar({ activePage, onPageChange, isSidebarOpen }) {
                             {authUser?.user_name?.charAt(0)?.toUpperCase() || 'C'}
                         </div>
                     )}
-                    label="ملفي الشخصي"
+                    label={authUser?.user_name || authUser?.name || 'ملفي الشخصي'}
                     href="/company/profile"
                     active={activePage === 'profile' || currentPath.startsWith('/company/profile')}
                     isSidebarOpen={isSidebarOpen}
