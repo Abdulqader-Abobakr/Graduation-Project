@@ -12,6 +12,7 @@ import {
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import Sidebar from './components/NavItem';
 import Header from './components/Header.jsx';
+import SilaAssistant from '../Components/SilaAssistant';
 
 const getAvatarUrl = (avatarPath) => {
     if (!avatarPath) return null;
@@ -104,12 +105,7 @@ const Profile = ({ pageTitle, user = {}, company = {} }) => {
                 />
 
                 <div className="flex-1 overflow-y-auto">
-                    <form onSubmit={handleSubmit} className="p-8 space-y-8" dir="rtl">
-                        <div>
-                            <h1 className="text-3xl font-bold mb-2">{company?.business_name || data.user_name || user?.user_name || pageTitle || 'ملفي الشخصي'}</h1>
-                            <p className="text-slate-500">قم بإدارة بيانات الشركة والهوية العامة.</p>
-                        </div>
-
+                    <form onSubmit={handleSubmit} className="p-8 space-y-6" dir="rtl">
             <div
                 className={`fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] transition-all duration-500 ease-out ${showToast && flash.success ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-10 opacity-0 scale-95 pointer-events-none'}`}
             >
@@ -129,7 +125,7 @@ const Profile = ({ pageTitle, user = {}, company = {} }) => {
                 )}
             </div>
 
-            <div className="max-w-4xl mx-auto">
+            <div className="w-full">
                 <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8">
                     <div className="flex items-center gap-2 mb-8 border-b border-slate-50 pb-4">
                         <User size={20} className="text-slate-700" />
@@ -165,6 +161,7 @@ const Profile = ({ pageTitle, user = {}, company = {} }) => {
                                     type="text"
                                     value={data.business_name}
                                     onChange={e => setData('business_name', e.target.value)}
+                                    placeholder="أدخل اسم الشركة"
                                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary transition-all font-medium"
                                 />
                                 {errors.business_name && <p className="text-red-500 text-xs">{errors.business_name}</p>}
@@ -176,6 +173,7 @@ const Profile = ({ pageTitle, user = {}, company = {} }) => {
                                     type="text"
                                     value={data.industry}
                                     onChange={e => setData('industry', e.target.value)}
+                                    placeholder="مثال: التقنية، التجارة الإلكترونية، التسويق"
                                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary transition-all font-medium"
                                 />
                                 {errors.industry && <p className="text-red-500 text-xs">{errors.industry}</p>}
@@ -187,6 +185,7 @@ const Profile = ({ pageTitle, user = {}, company = {} }) => {
                                     type="text"
                                     value={data.user_name}
                                     onChange={e => setData('user_name', e.target.value)}
+                                    placeholder="أدخل اسم المسؤول أو المالك"
                                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary transition-all font-medium"
                                 />
                                 {errors.user_name && <p className="text-red-500 text-xs">{errors.user_name}</p>}
@@ -198,6 +197,7 @@ const Profile = ({ pageTitle, user = {}, company = {} }) => {
                                     type="text"
                                     value={data.city}
                                     onChange={e => setData('city', e.target.value)}
+                                    placeholder="أدخل اسم المدينة (مثال: صنعاء)"
                                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary transition-all font-medium"
                                 />
                                 {errors.city && <p className="text-red-500 text-xs">{errors.city}</p>}
@@ -209,6 +209,7 @@ const Profile = ({ pageTitle, user = {}, company = {} }) => {
                                     type="email"
                                     value={data.email}
                                     onChange={e => setData('email', e.target.value)}
+                                    placeholder="example@company.com"
                                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary transition-all font-medium"
                                 />
                                 {errors.email && <p className="text-red-500 text-xs">{errors.email}</p>}
@@ -220,6 +221,7 @@ const Profile = ({ pageTitle, user = {}, company = {} }) => {
                                     type="text"
                                     value={data.phone_number}
                                     onChange={e => setData('phone_number', e.target.value)}
+                                    placeholder="7xxxxxxxx"
                                     dir="ltr"
                                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary transition-all font-medium text-end"
                                 />
@@ -232,6 +234,7 @@ const Profile = ({ pageTitle, user = {}, company = {} }) => {
                                     rows={4}
                                     value={data.company_description}
                                     onChange={e => setData('company_description', e.target.value)}
+                                    placeholder="اكتب نبذة تعريفية مختصرة عن الشركة وأهدافها ومجال عملها..."
                                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary transition-all resize-none font-medium leading-relaxed"
                                 />
                                 {errors.company_description && <p className="text-red-500 text-xs">{errors.company_description}</p>}
@@ -249,6 +252,7 @@ const Profile = ({ pageTitle, user = {}, company = {} }) => {
         </form>
                 </div>
             </main>
+            <SilaAssistant />
         </div>
     );
 };

@@ -377,6 +377,7 @@ export default function ProposalFormModal({
                         setData('revision_limit', val);
                       }
                     }}
+                    placeholder="مثال: 2"
                     onKeyDown={(e) => {
                       if (
                         !['0', '1', '2', '3', 'Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key) &&

@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import logo from '../assets/logo.png';
+import SilaAssistant from '../../Components/SilaAssistant';
 
 export const FreelancerLayoutContext = createContext({
   activeFilter: 'all',
@@ -444,6 +445,7 @@ export default function FreelancerLayout({ children }) {
             : children}
         </div>
       </main>
+      <SilaAssistant />
     </div>
   );
 }

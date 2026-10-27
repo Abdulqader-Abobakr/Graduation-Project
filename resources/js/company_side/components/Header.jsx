@@ -5,7 +5,7 @@ export default function Header({
     onMenuToggle,
     search,
     setSearch,
-    searchPlaceholder,
+    searchPlaceholder = 'ابحث عن مستقل أو تخصص أو مهارة...',
     onSearchSubmit,
     filterLabel = 'تصفية',
     filterOptions = [],

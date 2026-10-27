@@ -7,10 +7,9 @@ import {
   Phone,
   MapPin,
   CheckCircle2,
-  ArrowRight,
   Save
 } from 'lucide-react';
-import { Link, useForm, usePage } from '@inertiajs/react';
+import { useForm, usePage } from '@inertiajs/react';
 
 // Tag Input Component
 const TagInput = ({ tags, setTags, placeholder, error, buttonText = "أضف" }) => {
@@ -128,18 +127,6 @@ const Profile = ({ pageTitle, user = {}, freelancer = {} }) => {
 
   return (
     <form onSubmit={handleSubmit} className="p-8 space-y-8" dir="rtl">
-      {/* SECTION 1: Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">{data.user_name || user.user_name || user.name || pageTitle || 'الملف الشخصي'}</h1>
-          <p className="text-slate-500">قم بإدارة بياناتك المهنية وهويتك العامة.</p>
-        </div>
-        <Link href="/freelancer" className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all">
-          <ArrowRight size={18} />
-          العودة إلى لوحة التحكم
-        </Link>
-      </div>
-
       {/* Floating Success Toast */}
       <div
         className={`fixed bottom-10 left-1/2 -translate-x-1/2 z-100 transition-all duration-500 ease-out ${showToast && flash.success
@@ -167,7 +154,7 @@ const Profile = ({ pageTitle, user = {}, freelancer = {} }) => {
         )}
       </div>
 
-      <div className="max-w-4xl mx-auto">
+      <div className="w-full">
 
         {/* SECTION 2: Personal Info Card */}
         <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8">
@@ -214,6 +201,7 @@ const Profile = ({ pageTitle, user = {}, freelancer = {} }) => {
                   type="text"
                   value={data.user_name}
                   onChange={e => setData('user_name', e.target.value)}
+                  placeholder="أدخل اسمك الكامل"
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary transition-all font-medium"
                 />
                 {errors.user_name && <p className="text-red-500 text-xs">{errors.user_name}</p>}
@@ -237,6 +225,7 @@ const Profile = ({ pageTitle, user = {}, freelancer = {} }) => {
                   type="email"
                   value={data.email}
                   onChange={e => setData('email', e.target.value)}
+                  placeholder="example@domain.com"
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary transition-all font-medium"
                 />
                 {errors.email && <p className="text-red-500 text-xs">{errors.email}</p>}
@@ -249,6 +238,7 @@ const Profile = ({ pageTitle, user = {}, freelancer = {} }) => {
                     type="text"
                     value={data.phone_number}
                     onChange={e => setData('phone_number', e.target.value)}
+                    placeholder="7xxxxxxxx"
                     dir="ltr"
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary transition-all font-medium text-end"
                   />
@@ -260,6 +250,7 @@ const Profile = ({ pageTitle, user = {}, freelancer = {} }) => {
                     type="text"
                     value={data.city}
                     onChange={e => setData('city', e.target.value)}
+                    placeholder="أدخل اسم المدينة (مثال: صنعاء)"
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary transition-all font-medium"
                   />
                   {errors.city && <p className="text-red-500 text-xs">{errors.city}</p>}

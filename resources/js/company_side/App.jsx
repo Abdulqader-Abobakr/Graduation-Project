@@ -8,6 +8,7 @@ import MyProjectsPage from './pages/MyProjectsPage';
 import ChatPage from './pages/ChatPage';
 import ProjectWorkspace from './pages/ProjectWorkspace';
 import { router, usePage } from '@inertiajs/react';
+import SilaAssistant from '../Components/SilaAssistant';
 
 // 👇 official list — same as the old code
 const defaultIndustries = [
@@ -367,6 +368,8 @@ export default function App({
                     </div>
                 )}
             </div>
+
+            <SilaAssistant />
         </div>
     );
 }

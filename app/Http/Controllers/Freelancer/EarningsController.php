@@ -74,8 +74,8 @@ class EarningsController extends Controller
                 'date'       => $tx->created_at ? $tx->created_at->format('d M Y') : '',
                 'desc'       => $tx->project_title ?? 'مشروع',
                 'client'     => $tx->client_user_name ?? '-',
-                'amount'     => '+' . number_format($tx->amount, 0) . ' ر.ي',
-                'status'     => $isCompleted ? 'تم الاستلام' : 'معلق في الضمان',
+                'amount'     => number_format($tx->amount, 0) . ' ر.ي',
+                'status'     => $isCompleted ? 'تم الاستلام' : 'معلق حتى التسليم',
                 'statusType' => $isCompleted ? 'success' : 'escrow',
             ];
         }

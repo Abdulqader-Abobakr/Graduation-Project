@@ -18,6 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
         ]);
 
+        $middleware->validateCsrfTokens(except: [
+            'assistant/ask',
+        ]);
+
         $middleware->alias([
             'role' => RoleMiddleware::class,
         ]);

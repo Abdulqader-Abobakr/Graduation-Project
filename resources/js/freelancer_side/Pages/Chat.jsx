@@ -316,17 +316,6 @@ export default function Chat({ conversation, conversations = [], search = '', ac
                             )}
                         </div>
                     </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                        <button
-                            type="button"
-                            onClick={() => setIsProposalModalOpen(true)}
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-primary/10 px-3.5 py-2 text-xs font-bold text-primary hover:bg-primary/20 transition-colors cursor-pointer"
-                        >
-                            <FileText size={14} />
-                            <span>تقديم عرض سعر</span>
-                        </button>
-                    </div>
                 </header>
 
                 {/* Messages Body */}

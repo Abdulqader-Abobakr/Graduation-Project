@@ -3,6 +3,7 @@ import { CheckCircle2, Eye, EyeOff, KeyRound, Lock, Mail, ShieldCheck, Sparkles,
 import { useForm, usePage, router } from '@inertiajs/react';
 import Sidebar from './components/NavItem';
 import Header from './components/Header.jsx';
+import SilaAssistant from '../Components/SilaAssistant';
 
 export default function ProfileSettings({ pageTitle, user = {} }) {
     const { flash = {} } = usePage().props;
@@ -497,6 +498,7 @@ export default function ProfileSettings({ pageTitle, user = {} }) {
             </div>
                 </div>
             </main>
+            <SilaAssistant />
         </div>
     );
 }

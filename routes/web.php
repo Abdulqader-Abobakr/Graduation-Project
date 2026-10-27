@@ -8,6 +8,7 @@ use App\Http\Controllers\Freelancer;
 use App\Http\Controllers\Company\BriefController;
 use App\Http\Controllers\Company\ProfileController;
 use App\Http\Controllers\Company\ProposalController as CompanyProposalController;
+use App\Http\Controllers\PlatformAssistantController;
 
 Route::get('/', function () {
     return Inertia::render('Landing');
@@ -23,6 +24,8 @@ Route::get('/reset-password', [ForgotPasswordController::class, 'showResetForm']
 Route::post('/reset-password', [ForgotPasswordController::class, 'reset'])->name('password.update');
 
 Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
+
+Route::post('/assistant/ask', [PlatformAssistantController::class, 'ask'])->name('assistant.ask');
 
 Route::middleware(['auth', 'role:company'])->group(function () {
     Route::get('/company', [BriefController::class, 'index'])

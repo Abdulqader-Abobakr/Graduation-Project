@@ -41,4 +41,9 @@ return [
         'verification_bucket' => env('SUPABASE_VERIFICATION_BUCKET', 'verification-docs'),
     ],
 
+    'gemini' => [
+        'key' => env('GEMINI_API_KEY'),
+        'model' => env('GEMINI_MODEL', 'gemini-2.5-flash'),
+    ],
+
 ];

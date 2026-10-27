@@ -190,65 +190,71 @@ const Earnings = ({
       </div>
 
       {/* SECTION 1: Page Header */}
-      <header className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 text-start">
+      <header className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 text-start">
         <div className="space-y-1">
-          <h1 className="text-3xl font-black bg-gradient-to-r from-[#2a7de1] to-[#2a7de1] bg-clip-text text-transparent tracking-tight">{pageTitle || 'الأرباح'}</h1>
-          <p className="text-slate-500 font-medium text-sm">تابع إيراداتك ومسحوباتك، واطلب سحب أرباحك المتاحة بكل سهولة.</p>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">{pageTitle || 'الأرباح'}</h1>
+          <p className="text-slate-500 font-medium text-xs md:text-sm">تابع إيراداتك ومسحوباتك، واطلب سحب أرباحك المتاحة بكل سهولة.</p>
         </div>
         <button
           onClick={() => setIsPayoutModalOpen(true)}
-          className="flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-[#2a7de1] to-[#1f6fd4] hover:from-[#2a7de1] hover:to-[#2a7de1] text-white rounded-2xl font-bold shadow-md shadow-[#2a7de1]/20 transition-all active:scale-95 group shrink-0 cursor-pointer"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold text-sm shadow-md shadow-primary/20 transition-all active:scale-95 group shrink-0 cursor-pointer"
         >
-          <ArrowDownToLine size={20} className="transition-transform group-hover:translate-y-0.5" />
+          <ArrowDownToLine size={18} className="transition-transform group-hover:translate-y-0.5" />
           طلب سحب رصيد
         </button>
       </header>
 
-      {/* SECTION 2: Financial Overview Cards */}
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 text-start">
+      {/* SECTION 2: Financial Overview Cards (Compact & Elegant) */}
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-start">
         {/* Total Lifetime Earnings */}
-        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-          <div className="w-14 h-14 bg-slate-50 text-slate-700 rounded-2xl flex items-center justify-center mb-6">
-            <TrendingUp size={28} />
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">إجمالي الأرباح</span>
+            <div className="w-10 h-10 bg-blue-50 text-primary rounded-xl flex items-center justify-center shrink-0">
+              <TrendingUp size={20} />
+            </div>
           </div>
-          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">إجمالي الأرباح</p>
           <div className="flex items-baseline gap-1">
-            <span className="text-3xl font-black bg-gradient-to-r from-[#2a7de1] to-[#2a7de1] bg-clip-text text-transparent flex items-baseline gap-1">
-              {(wallet.total_lifetime_earnings || 0).toLocaleString()} <span className="text-base font-bold text-slate-400">ر.ي</span>
+            <span className="text-2xl font-black text-slate-800 flex items-baseline gap-1">
+              {(wallet.total_lifetime_earnings || 0).toLocaleString()} <span className="text-xs font-bold text-slate-400">ر.ي</span>
             </span>
           </div>
         </div>
 
         {/* Available for Payout */}
-        <div className="bg-gradient-to-br from-[#2a7de1] via-[#2a7de1]/80 to-[#2a7de1] text-white p-8 rounded-3xl shadow-lg shadow-[#2a7de1]/20 relative overflow-hidden group">
+        <div className="bg-gradient-to-br from-[#2a7de1] via-[#246ec7] to-[#1a5fa8] text-white p-5 rounded-2xl shadow-md shadow-primary/20 relative overflow-hidden group">
           <div className="relative z-10 text-white">
-            <div className="w-14 h-14 bg-white/10 text-white rounded-2xl flex items-center justify-center mb-6 backdrop-blur-sm">
-              <Wallet size={28} />
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold text-blue-100 uppercase tracking-wider">الرصيد المتاح للسحب</span>
+              <div className="w-10 h-10 bg-white/15 text-white rounded-xl flex items-center justify-center backdrop-blur-xs shrink-0">
+                <Wallet size={20} />
+              </div>
             </div>
-            <p className="text-sm font-bold text-teal-100 uppercase tracking-widest mb-1">الرصيد المتاح للسحب</p>
             <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-black flex items-baseline gap-1">
-                {availableBalance.toLocaleString()} <span className="text-base font-bold text-teal-200">ر.ي</span>
+              <span className="text-2xl font-black flex items-baseline gap-1">
+                {availableBalance.toLocaleString()} <span className="text-xs font-bold text-blue-100">ر.ي</span>
               </span>
             </div>
           </div>
-          <div className="absolute top-0 start-0 w-32 h-32 bg-white/5 rounded-full -translate-x-1/2 -translate-y-1/2 blur-2xl transition-transform duration-700 rtl:translate-x-1/2"></div>
+          <div className="absolute top-0 start-0 w-24 h-24 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-xl transition-transform duration-700 rtl:translate-x-1/2"></div>
         </div>
 
         {/* Total Withdrawn */}
-        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-          <div className="w-14 h-14 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mb-6">
-            <ArrowDownToLine size={28} />
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">إجمالي المسحوب</span>
+            <div className="w-10 h-10 bg-green-50 text-green-600 rounded-xl flex items-center justify-center shrink-0">
+              <ArrowDownToLine size={20} />
+            </div>
           </div>
-          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">إجمالي المسحوب</p>
           <div className="flex items-baseline gap-1 mb-2">
-            <span className="text-3xl font-black text-slate-800 flex items-baseline gap-1">
-              {(wallet.total_withdrawn || 0).toLocaleString()} <span className="text-base font-bold text-slate-400">ر.ي</span>
+            <span className="text-2xl font-black text-slate-800 flex items-baseline gap-1">
+              {(wallet.total_withdrawn || 0).toLocaleString()} <span className="text-xs font-bold text-slate-400">ر.ي</span>
             </span>
           </div>
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-green-700 bg-green-50 px-3 py-1 rounded-full w-fit">
-            <CheckCircle2 size={12} />
-            طلبات السحب المُعتمدة والمعلقة
+          <div className="flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-md w-fit">
+            <CheckCircle2 size={11} />
+            طلبات معتمدة ومعلقة
           </div>
         </div>
       </div>
