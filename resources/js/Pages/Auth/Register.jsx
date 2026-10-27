@@ -45,11 +45,11 @@ const validateStep = (step, formData, accountType) => {
             } else {
                 const companyName = (formData.companyName || '').trim();
                 if (!companyName) {
-                    errors.companyName = 'اسم الشركة مطلوب';
+                    errors.companyName = 'اسم رائد الأعمال / المشروع أو الشركة مطلوب';
                 } else if (companyName.length < 2) {
-                    errors.companyName = 'اسم الشركة يجب أن يتكون من حرفين على الأقل';
+                    errors.companyName = 'الاسم يجب أن يتكون من حرفين على الأقل';
                 } else if (!/^[\u0600-\u06FF0-9\s]+$/.test(companyName)) {
-                    errors.companyName = 'اسم الشركة يجب أن يحتوي على أحرف عربية وأرقام فقط';
+                    errors.companyName = 'الاسم يجب أن يحتوي على أحرف عربية وأرقام فقط';
                 }
             }
 
@@ -69,7 +69,7 @@ const validateStep = (step, formData, accountType) => {
             }
 
             if (!formData.idDocument) {
-                errors.idDocument = accountType === 'freelancer' ? 'صورة الهوية / جواز السفر مطلوبة' : 'صورة السجل التجاري مطلوبة';
+                errors.idDocument = accountType === 'freelancer' ? 'صورة الهوية الوطنية / جواز السفر مطلوبة' : 'صورة السجل التجاري أو البطاقة الشخصية مطلوبة';
             } else if (formData.idDocument.size && formData.idDocument.size > 10 * 1024 * 1024) {
                 errors.idDocument = 'حجم الملف يجب ألا يتجاوز 10 ميجابايت';
             }
@@ -121,8 +121,8 @@ const validateStep = (step, formData, accountType) => {
 const ACCOUNT_TYPES = {
     freelancer: {
         id: 'freelancer',
-        label: 'مستقل في خدمات ريادة الأعمال',
-        description: 'أنشئ حساباً مستقلاً لتقديم خدمات ريادة الأعمال للشركات',
+        label: 'خبير في خدمات ريادة الأعمال',
+        description: 'أنشئ حساب خبير لتقديم خدماتك الاستشارية والتقنية والتسويقية لرواد الأعمال',
         icon: (
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18M3 17h18" />
@@ -132,8 +132,8 @@ const ACCOUNT_TYPES = {
     },
     company: {
         id: 'company',
-        label: 'شركة / مؤسسة',
-        description: 'أنشئ حساب شركة للبحث عن المستقلين لتنفيذ مشاريعك',
+        label: 'رائد أعمال / صاحب مشروع',
+        description: 'أنشئ حساب رائد أعمال لطرح مشاريعك والبحث عن نخبة الخبراء لتنفيذها',
         icon: (
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3M3 11h18M5 21h14a2 2 0 002-2V11H3v8a2 2 0 002 2z" />
@@ -147,10 +147,10 @@ const ACCOUNT_TYPES = {
 const FORM_FIELDS = {
     company: {
         1: [
-            { name: 'companyName', label: 'اسم الشركة', type: 'text', placeholder: 'أدخل اسم شركتك (باللغة العربية)', required: true },
-            { name: 'email', label: 'البريد الإلكتروني', type: 'email', placeholder: 'example@company.com', required: true },
+            { name: 'companyName', label: 'اسم رائد الأعمال / المشروع أو الشركة', type: 'text', placeholder: 'أدخل اسمك أو اسم مشروعك/شركتك (باللغة العربية)', required: true },
+            { name: 'email', label: 'البريد الإلكتروني', type: 'email', placeholder: 'example@email.com', required: true },
             { name: 'phone', label: 'رقم الهاتف', type: 'tel', placeholder: '7xxxxxxxx', required: true },
-            { name: 'idDocument', label: 'صورة السجل التجاري', type: 'file', required: true }
+            { name: 'idDocument', label: 'صورة السجل التجاري أو البطاقة الشخصية', type: 'file', required: true }
         ],
         2: [
             {
@@ -188,15 +188,15 @@ const FORM_FIELDS = {
     },
     freelancer: {
         1: [
-            { name: 'name', label: 'الاسم الكامل', type: 'text', placeholder: 'أدخل اسمك الثلاثي (باللغة العربية)', required: true },
-            { name: 'email', label: 'البريد الإلكتروني', type: 'email', placeholder: 'example@company.com', required: true },
+            { name: 'name', label: 'اكتب اسمك كامل', type: 'text', placeholder: 'أدخل اسمك الثلاثي (باللغة العربية)', required: true },
+            { name: 'email', label: 'البريد الإلكتروني', type: 'email', placeholder: 'example@email.com', required: true },
             { name: 'phone', label: 'رقم الهاتف', type: 'tel', placeholder: '7xxxxxxxx', required: true },
-            { name: 'idDocument', label: 'صورة الهوية / جواز السفر', type: 'file', required: true }
+            { name: 'idDocument', label: 'صورة الهوية الوطنية / جواز السفر', type: 'file', required: true }
         ],
         2: [
             {
                 name: 'sector',
-                label: 'مجال ريادة الأعمال الذي تقدّم فيه الخدمة',
+                label: 'مجال الخبرة الذي تقدّم فيه خدماتك كخبير',
                 type: 'select',
                 placeholder: 'اختر المجال',
                 required: true,
@@ -589,7 +589,7 @@ function Register() {
                 <div className="px-4 sm:px-6 md:px-8 lg:px-10 py-6 sm:py-8">
                     <div className="text-center mb-4">
                         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-                            {accountType === 'freelancer' ? 'مستقل في خدمات ريادة الأعمال' : 'شركة / مؤسسة'}
+                            {accountType === 'freelancer' ? 'خبير في خدمات ريادة الأعمال' : 'رائد أعمال / صاحب مشروع'}
                         </p>
                         <h1 className="mt-3 text-2xl font-bold text-slate-900">{stepData[step - 1].label}</h1>
                         <p className="mt-2 text-base text-slate-500">{stepData[step - 1].description}</p>

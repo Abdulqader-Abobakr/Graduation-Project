@@ -26,8 +26,8 @@ function Landing() {
             <nav className="hidden md:flex items-center gap-8 text-base text-slate-600">
               <a href="#why-us" className="hover:text-primary font-medium">لماذا نحن</a>
               <a href="#how-it-works" className="hover:text-primary font-medium">كيف يعمل</a>
-              <a href="#companies" className="hover:text-primary font-medium">للشركات</a>
-              <a href="#freelancers" className="hover:text-primary font-medium">للمستقلين</a>
+              <a href="#companies" className="hover:text-primary font-medium">لرواد الأعمال</a>
+              <a href="#freelancers" className="hover:text-primary font-medium">للخبراء</a>
               <a href="#contact" className="hover:text-primary font-medium">تواصل معنا</a>
             </nav>
 
@@ -60,7 +60,7 @@ function Landing() {
             </h1>
 
             <p className="mt-4 sm:mt-5 text-sm sm:text-base lg:text-lg text-slate-600 leading-relaxed max-w-lg">
-              منصة ربط الشركات الصغيرة والمتوسطة مع المستقلين المتخصصين في خدمات ريادة الأعمال.
+              منصة ربط رواد الأعمال وأصحاب المشاريع بنخبة من الخبراء المتخصصين في خدمات ريادة الأعمال.
               <br />
               تواصل مباشر بدون وسطاء، بدون عمولات.
             </p>
@@ -70,13 +70,13 @@ function Landing() {
                 href="/register"
                 className="bg-primary text-white px-5 sm:px-8 py-3 sm:py-3.5 rounded-lg text-sm sm:text-base font-semibold hover:bg-primary-dark transition shadow-md"
               >
-                ابحث عن مستقل
+                ابحث عن خبير
               </Link>
               <Link
                 href="/register"
                 className="border-2 border-primary text-primary px-5 sm:px-8 py-3 sm:py-3.5 rounded-lg text-sm sm:text-base font-semibold hover:bg-primary/10 transition bg-white"
               >
-                سجل كمستقل
+                سجل كخبير
               </Link>
             </div>
           </div>
@@ -86,7 +86,7 @@ function Landing() {
               <div className="overflow-hidden rounded-2xl">
                 <img
                   src="/images/hero.jpg"
-                  alt="Entrepreneurship services freelancer"
+                  alt="Entrepreneurship services expert"
                   width="800"
                   height="500"
                   fetchPriority="high"
@@ -106,7 +106,7 @@ function Landing() {
               لماذا <span className="text-primary">تختارنا؟</span>
             </h2>
             <p className="mt-3 text-lg text-slate-600">
-              منصة مصممة لتجعل التواصل مع خبراء ريادة الأعمال أسهل وأسرع
+              منصة مصممة لتجمع رواد الأعمال بنخبة خبراء ريادة الأعمال بأسهل وأسرع طريقة
             </p>
           </div>
 
@@ -117,7 +117,7 @@ function Landing() {
               </div>
               <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-3">بدون عمولات</h3>
               <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-                لا توجد أي عمولات على التعاقدات. ما تدفعه يذهب بالكامل للمستقل الذي تختاره.
+                لا توجد أي عمولات على التعاقدات. ما تدفعه يذهب بالكامل للخبير الذي تختاره لإنجاز وتنمية مشروعك.
               </p>
             </div>
 
@@ -129,7 +129,7 @@ function Landing() {
               </div>
               <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-3">تواصل مباشر</h3>
               <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-                تواصل مباشر مع خبراء ريادة الأعمال بدون وسطاء. أنت تتحكم في عملية الاختيار.
+                تواصل مباشر بين رواد الأعمال والخبراء بدون وسطاء. أنت تتحكم في عملية الاختيار بالكامل.
               </p>
             </div>
 
@@ -166,27 +166,27 @@ function Landing() {
                 ١
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-2">سجل مجاناً</h3>
-              <p className="text-sm sm:text-base text-slate-600">أنشئ حسابك مجاناً وابدأ رحلة البحث عن المستقل المناسب</p>
+              <p className="text-sm sm:text-base text-slate-600">أنشئ حسابك مجاناً سواءً كنت رائد أعمال تبحث عن خبير أو خبيراً يقدم خدماته</p>
             </div>
             <div className="text-center group">
               <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-white">
                 ٢
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">ابحث عن مستقل</h3>
-              <p className="text-sm sm:text-base text-slate-600">ابحث في قاعدة بيانات المستقلين المتخصصين واختر الأنسب</p>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">ابحث عن خبير</h3>
+              <p className="text-sm sm:text-base text-slate-600">ابحث في قاعدة بيانات الخبراء المتخصصين واختر الأنسب لطموحات مشروعك</p>
             </div>
             <div className="text-center group">
               <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-white">
                 ٣
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-2">تواصل مباشر</h3>
-              <p className="text-sm sm:text-base text-slate-600">تواصل مباشر مع المستقل وابدأ مشروعك بدون وسطاء أو عمولات</p>
+              <p className="text-sm sm:text-base text-slate-600">تواصل مباشر بين الخبير ورائد الأعمال وابدأ تنفيذ مشروعك بدون وسطاء أو عمولات</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* For Companies Section */}
+      {/* For Entrepreneurs Section */}
       <section id="companies" className="py-10 sm:py-16 bg-slate-50">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
@@ -195,11 +195,11 @@ function Landing() {
                 تبحث عن خبير لنمو مشروعك؟
               </h2>
               <p className="text-sm sm:text-base lg:text-lg text-slate-600 mb-6">
-                سجل مجاناً، واستلم عروضاً من مستقلين متخصصين في مجالك.
+                سجل كرائد أعمال مجاناً، واطرح مشروعك لتستلم عروضاً احترافية من نخبة الخبراء في مجالك.
               </p>
 
               <div className="space-y-4">
-                {['ابحث عن مستقلين متخصصين', 'تواصل مباشر بدون وسيط', 'قارن بين العروض واختر الأفضل'].map((text) => (
+                {['ابحث عن خبراء متخصصين وموثوقين', 'تواصل مباشر مع الخبير بدون وسيط', 'قارن بين عروض الأسعار والمراحل واختر الأفضل'].map((text) => (
                   <div key={text} className="flex items-start gap-3">
                     <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center shrink-0 mt-0.5">
                       <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -215,7 +215,7 @@ function Landing() {
                 href="/register"
                 className="inline-block mt-8 bg-primary text-white px-8 py-3.5 rounded-lg text-md font-semibold hover:bg-primary-dark transition shadow-md"
               >
-                سجل كشركة
+                سجل كرائد أعمال
               </Link>
             </div>
 
@@ -235,7 +235,7 @@ function Landing() {
         </div>
       </section>
 
-      {/* For Freelancers Section */}
+      {/* For Experts Section */}
       <section id="freelancers" className="py-10 sm:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
@@ -254,18 +254,18 @@ function Landing() {
 
             <div className="order-1 lg:order-2">
               <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-2">
-                ابحث عن عملاء جدد
+                قدّم خبرتك لرواد الأعمال
               </h2>
               <p className="text-sm sm:text-base lg:text-lg text-slate-600 mb-6">
-                سجل كمستقل مجاناً وتواصل مع شركات تبحث عن خدمات ريادة الأعمال
+                سجل كخبير مجاناً وتواصل مباشرة مع رواد أعمال ومشاريع يبحثون عن خدمات ريادة الأعمال
               </p>
 
               <div className="space-y-4">
                 {[
-                  'تصفح المشاريع المتاحة، وتواصل مع الشركات التي تحتاج خدماتها',
-                  'استقبال طلبات من شركات تحتاج خدماتك',
-                  'توسيع قاعدة عملائك',
-                  'استلام إشعارات فورية عن مشاريع جديدة في مجالك',
+                  'تصفح المشاريع المتاحة، وتواصل مع رواد الأعمال الذين يحتاجون خبراتك',
+                  'استقبال طلبات مشاريع من رواد أعمال وشركات ناشئة',
+                  'إبراز وتطوير معرض أعمالك وتوسيع قاعدة عملائك',
+                  'استلام إشعارات فورية عن مشاريع جديدة في تخصصك',
                 ].map((text) => (
                   <div key={text} className="flex items-start gap-3">
                     <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center shrink-0 mt-0.5">
@@ -282,7 +282,7 @@ function Landing() {
                 href="/register"
                 className="inline-block mt-8 bg-primary text-white px-8 py-3.5 rounded-lg text-md font-semibold hover:bg-primary-dark transition shadow-md"
               >
-                سجل كمستقل
+                سجل كخبير
               </Link>
             </div>
           </div>
@@ -294,23 +294,23 @@ function Landing() {
         <div className="bg-[#ffb548]">
           <div className="max-w-7xl mx-auto px-3 sm:px-6 py-10 sm:py-16 text-center">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-4">
-              جاهز للإبداع
+              جاهز للإبداع والنمو؟
             </h2>
             <p className="text-lg text-white/90 max-w-2xl mx-auto mb-8">
-              سجل مجاناً اليوم. إما كشركة تبحث عن مستقل، أو كمستقل تبحث عن عملاء.
+              سجل مجاناً اليوم، سواءً كنت رائد أعمال تبحث عن خبير، أو خبيراً يبحث عن مشاريع نوعية.
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <Link
                 href="/register"
                 className="bg-white text-primary px-8 py-3.5 rounded-lg text-md font-semibold hover:bg-slate-50 transition shadow-md"
               >
-                سجل كشركة
+                سجل كرائد أعمال
               </Link>
               <Link
                 href="/register"
                 className="border-2 border-white text-white px-8 py-3.5 rounded-lg text-md font-semibold hover:bg-white hover:text-primary transition"
               >
-                سجل كمستقل
+                سجل كخبير
               </Link>
             </div>
           </div>
@@ -324,7 +324,7 @@ function Landing() {
                   <img src="/images/logo.png" alt="صلة" className="h-9 w-auto" />
                 </div>
                 <p className="text-slate-600 text-sm leading-relaxed">
-                  منصة ربط الشركات الصغيرة والمتوسطة مع المستقلين المتخصصين في خدمات ريادة الأعمال.
+                  منصة ربط رواد الأعمال وأصحاب المشاريع بنخبة من الخبراء المتخصصين في خدمات ريادة الأعمال.
                 </p>
               </div>
 
@@ -333,8 +333,8 @@ function Landing() {
                 <ul className="space-y-2 text-sm text-slate-600">
                   <li><a href="#why-us" className="hover:text-primary transition">لماذا نحن</a></li>
                   <li><a href="#how-it-works" className="hover:text-primary transition">كيف يعمل</a></li>
-                  <li><a href="#companies" className="hover:text-primary transition">الشركات</a></li>
-                  <li><a href="#freelancers" className="hover:text-primary transition">للمستقلين</a></li>
+                  <li><a href="#companies" className="hover:text-primary transition">لرواد الأعمال</a></li>
+                  <li><a href="#freelancers" className="hover:text-primary transition">للخبراء</a></li>
                 </ul>
               </div>
 

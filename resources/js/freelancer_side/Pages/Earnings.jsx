@@ -262,7 +262,7 @@ const Earnings = ({
       {/* SECTION 4: Transaction Table */}
       <div className="max-w-6xl mx-auto text-start">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-black text-slate-800">سجل المعاملات الأخيرة</h2>
+          <h2 className="text-2xl font-black text-slate-800">سجل المدفوعات</h2>
         </div>
 
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
@@ -294,12 +294,12 @@ const Earnings = ({
                   <tr>
                     <td colSpan="5" className="px-8 py-10 text-center text-sm font-bold text-slate-400">
                       {search && activeFilter !== 'all'
-                        ? 'لا توجد معاملات مطابقة للبحث خلال هذه الفترة الزمنية.'
+                        ? 'لا توجد مدفوعات مطابقة للبحث خلال هذه الفترة الزمنية.'
                         : search
-                          ? 'لا توجد معاملات مطابقة للبحث.'
+                          ? 'لا توجد مدفوعات مطابقة للبحث.'
                           : activeFilter !== 'all'
-                            ? 'لا توجد معاملات خلال الفترة الزمنية المحددة.'
-                            : 'لا توجد معاملات بعد.'}
+                            ? 'لا توجد مدفوعات خلال الفترة الزمنية المحددة.'
+                            : 'لا توجد مدفوعات بعد.'}
                     </td>
                   </tr>
                 )}

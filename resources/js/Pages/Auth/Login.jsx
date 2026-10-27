@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useForm, usePage } from '@inertiajs/react';
-import TermsAndPrivacyModal from '../../Components/TermsAndPrivacyModal';
 
 // ==================== FORGOT PASSWORD MODAL ====================
 function ForgotPasswordModal({ isOpen, onClose }) {
@@ -109,7 +108,7 @@ function ForgotPasswordModal({ isOpen, onClose }) {
                                         setEmail(e.target.value);
                                         if (error) setError('');
                                     }}
-                                    placeholder="example@company.com"
+                                    placeholder="example@email.com"
                                     required
                                     className={`w-full rounded-xl border ${error ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50'} pr-10 pl-4 py-3.5 text-right text-sm text-slate-900 shadow-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary-light transition-all`}
                                     dir="ltr"
@@ -189,7 +188,6 @@ function Login() {
 
     const [showPassword, setShowPassword] = useState(false);
     const [showForgotPassword, setShowForgotPassword] = useState(false);
-    const [showTermsModal, setShowTermsModal] = useState(false);
 
     // Sync remembered credentials on mount (from localStorage or encrypted server cookie props)
     useEffect(() => {
@@ -281,7 +279,7 @@ function Login() {
                                 </svg>
                             </div>
                             <h2 className="text-2xl font-bold text-slate-900">تسجيل الدخول</h2>
-                            <p className="text-sm text-slate-500 mt-2">مرحباً بعودتك! سجّل دخولك للمتابعة</p>
+                            <p className="text-sm text-slate-500 mt-2">مرحباً بعودتك! سجّل دخولك لحسابك كرائد أعمال أو خبير</p>
                         </div>
 
                         {flash?.success && (
@@ -316,7 +314,7 @@ function Login() {
                                         name="email"
                                         value={data.email}
                                         onChange={e => setData('email', e.target.value)}
-                                        placeholder="example@company.com"
+                                        placeholder="example@email.com"
                                         autoComplete="email"
                                         className={`w-full rounded-xl border ${errors.email ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50'} pr-10 pl-4 py-3 text-right text-sm text-slate-900 shadow-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary-light transition-all`}
                                         dir="ltr"
@@ -425,26 +423,10 @@ function Login() {
                             <Link href="/register" className="font-semibold text-primary hover:text-primary-dark hover:underline transition-colors">إنشاء حساب جديد</Link>
                         </p>
                     </div>
-
-                    <p className="mt-6 text-center text-xs text-slate-400">
-                        بتسجيل الدخول، أنت توافق على{' '}
-                        <button
-                            type="button"
-                            onClick={() => setShowTermsModal(true)}
-                            className="text-primary hover:underline font-medium cursor-pointer"
-                        >
-                            سياسة الاستخدام والخصوصية
-                        </button>
-                    </p>
                 </div>
             </div>
 
             <ForgotPasswordModal isOpen={showForgotPassword} onClose={() => setShowForgotPassword(false)} />
-            <TermsAndPrivacyModal
-                isOpen={showTermsModal}
-                onClose={() => setShowTermsModal(false)}
-                requireDecision={false}
-            />
 
             <style>{`@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }`}</style>
         </>
