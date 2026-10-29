@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Brief;
 use App\Models\Conversation;
 use App\Models\Deliverable;
+use App\Models\Dispute;
 use App\Models\Freelancer;
 use App\Models\Project;
 use App\Models\User;
@@ -400,6 +401,7 @@ class BriefController extends Controller
                 'deliverables' => fn($q) => $q->orderBy('created_at', 'asc'),
                 'originalProposal:id,project_id,revision_limit',
                 'proposalViaBrief:id,brief_id,revision_limit',
+                'disputes' => fn($q) => $q->with(['initiatedBy:id,user_name', 'againstUser:id,user_name'])->orderBy('created_at', 'desc'),
             ])
             ->findOrFail($projectId);
 
@@ -408,12 +410,34 @@ class BriefController extends Controller
         $minRemaining = $project->deliverables->min('remaining_revisions');
         $projectRemainingRevisions = $minRemaining !== null ? (int) $minRemaining : $totalRevisionLimit;
 
+        $disputes = $project->disputes->map(fn(Dispute $disp) => [
+            'id'                        => (string) $disp->id,
+            'reason'                    => $disp->reason,
+            'details'                   => $disp->details,
+            'status'                    => $disp->status,
+            'status_label'              => $disp->status_label,
+            'resolution_decision'       => $disp->resolution_decision,
+            'resolution_decision_label' => $disp->resolution_decision_label,
+            'freelancer_payout_amount'  => (float) $disp->freelancer_payout_amount,
+            'client_refund_amount'      => (float) $disp->client_refund_amount,
+            'admin_notes'               => $disp->admin_notes,
+            'is_initiator'              => (string) $disp->initiated_by_user_id === (string) $request->user()->id,
+            'initiated_by_name'         => $disp->initiatedBy?->user_name ?? 'مستخدم',
+            'against_user_name'         => $disp->againstUser?->user_name ?? 'الطرف الآخر',
+            'created_at'                => $disp->created_at ? $disp->created_at->locale('ar')->translatedFormat('d F Y - h:i a') : null,
+            'resolved_at'               => $disp->resolved_at ? $disp->resolved_at->locale('ar')->translatedFormat('d F Y - h:i a') : null,
+        ]);
+
+        $activeDispute = $disputes->first(fn($d) => in_array($d['status'], ['open', 'under_review']));
+
         return [
             'id' => (string) $project->id,
             'title' => $project->title,
             'status' => $project->status,
             'revision_limit' => $totalRevisionLimit,
             'remaining_revisions' => $projectRemainingRevisions,
+            'disputes' => $disputes,
+            'active_dispute' => $activeDispute,
             'deliverables' => $project->deliverables->map(fn(Deliverable $d) => [
                 'id' => (string) $d->id,
                 'title' => $d->title,

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Company;
 use App\Http\Controllers\Controller;
 use App\Models\Brief;
 use App\Models\Deliverable;
+use App\Models\Dispute;
 use App\Models\Freelancer;
 use App\Models\Project;
 use App\Models\User;
@@ -197,5 +198,47 @@ class ProjectController extends Controller
 
         $publicUrl = 'https://uvgwjjpzkzmgeolkqnuf.supabase.co/storage/v1/object/public/deliverables-files/' . $cleanPath;
         return redirect()->away($publicUrl);
+    }
+
+    /**
+     * File a new dispute for arbitration.
+     */
+    public function storeDispute(Request $request, Project $project)
+    {
+        $projectModel = $project instanceof Project ? $project : Project::findOrFail($project);
+
+        if ((string) $projectModel->client_id !== (string) auth()->id()) {
+            abort(403, 'غير مصرح لك بتقديم شكوى على هذا المشروع.');
+        }
+
+        // Check if there is an existing active dispute
+        $hasActiveDispute = Dispute::where('project_id', $projectModel->id)
+            ->whereIn('status', ['open', 'under_review'])
+            ->exists();
+
+        if ($hasActiveDispute) {
+            return back()->with('error', 'توجد بالفعل شكوى / نزاع مفتوح قيد التحكيم الإداري لهذا المشروع.');
+        }
+
+        $validated = $request->validate([
+            'reason'  => 'required|string|max:255',
+            'details' => 'required|string|min:15|max:5000',
+        ], [
+            'reason.required'  => 'يرجى اختيار سبب النزاع أو الشكوى.',
+            'details.required' => 'يرجى كتابة شرح مفصل للمشكلة والطلبات.',
+            'details.min'      => 'يرجى توضيح تفاصيل الشكوى بأكثر من 15 حرفاً لتمكين الإدارة من الفحص والتحكيم.',
+            'details.max'      => 'تجاوزت تفاصيل الشكوى الحد المسموح به (5000 حرف).',
+        ]);
+
+        Dispute::create([
+            'project_id'           => $projectModel->id,
+            'initiated_by_user_id' => auth()->id(),
+            'against_user_id'      => $projectModel->freelancer_id,
+            'reason'               => $validated['reason'],
+            'details'              => $validated['details'],
+            'status'               => 'open',
+        ]);
+
+        return back()->with('success', 'تم تسجيل الشكوى وإحالتها إلى إدارة التحكيم بنجاح. سيقوم الفريق الإداري بالاطلاع على مجريات المشروع والتواصل لفض النزاع.');
     }
 }

@@ -62,9 +62,9 @@ export default function CreateRequestModal({ isOpen, onClose, onSubmit, freelanc
         if (providerType === 'specific') {
             const trimmedPerson = specificPerson.trim();
             if (!fixedFreelancer && !trimmedPerson) {
-                newErrors.specificPerson = 'يرجى كتابة أو اختيار اسم المستقل';
+                newErrors.specificPerson = 'يرجى كتابة أو اختيار اسم الخبير';
             } else if (!resolvedFreelancerId) {
-                newErrors.specificPerson = 'يرجى اختيار المستقل من القائمة';
+                newErrors.specificPerson = 'يرجى اختيار الخبير من القائمة';
             }
         }
 
@@ -176,11 +176,11 @@ export default function CreateRequestModal({ isOpen, onClose, onSubmit, freelanc
                                             setErrors((prev) => ({ ...prev, specificPerson: null }));
                                         }
                                     }}
-                                    placeholder="اكتب اسم المستقل أو اختر من القائمة"
+                                    placeholder="اكتب اسم الخبير أو اختر من القائمة"
                                     className={`w-full px-4 py-3 rounded-xl border ${errors.specificPerson ? 'border-red-500' : 'border-primary'} focus:ring-2 focus:ring-primary/15 outline-none transition-all text-sm bg-[#f4f8fd]`}
                                 />
                                 {normalizedName && !hasExactMatch && matchingFreelancers.length === 0 && (
-                                    <p className="mt-2 text-sm font-bold text-red-500">❌ لا يوجد مستقل بهذا الاسم</p>
+                                    <p className="mt-2 text-sm font-bold text-red-500">❌ لا يوجد خبير بهذا الاسم</p>
                                 )}
                                 {matchingFreelancers.length > 0 && !targetedFreelancerId && (
                                     <div className="mt-1 max-h-40 overflow-y-auto rounded-xl border border-[#d4d1ca] bg-white shadow-sm">

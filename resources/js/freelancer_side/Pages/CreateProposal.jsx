@@ -1,6 +1,6 @@
 import React from 'react';
 import { router } from '@inertiajs/react';
-import ProposalFormModal from '../Components/ProposalFormModal';
+import ProposalFormModal from '../../Components/freelancer/ProposalFormModal';
 
 export default function CreateProposal({
   chatId,

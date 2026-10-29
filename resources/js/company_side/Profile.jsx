@@ -10,9 +10,9 @@ import {
     ArrowRight,
 } from 'lucide-react';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
-import Sidebar from './components/NavItem';
-import Header from './components/Header.jsx';
-import SilaAssistant from '../Components/SilaAssistant';
+import Sidebar from '../Components/company/NavItem';
+import Header from '../Components/company/Header';
+import SilaAssistant from '../Components/shared/SilaAssistant';
 
 const getAvatarUrl = (avatarPath) => {
     if (!avatarPath) return null;

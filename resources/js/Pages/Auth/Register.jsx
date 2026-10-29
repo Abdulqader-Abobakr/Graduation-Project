@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, router, useForm } from '@inertiajs/react';
-import TermsAndPrivacyModal from '../../Components/TermsAndPrivacyModal';
+import TermsAndPrivacyModal from '../../Components/shared/TermsAndPrivacyModal';
 
 // The 21 major Yemeni cities and governorates
 const YEMEN_CITIES = [

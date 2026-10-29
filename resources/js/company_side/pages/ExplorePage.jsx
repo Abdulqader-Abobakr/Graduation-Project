@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { User } from 'lucide-react';
-import CreateRequestModal from '../components/CreateRequestModal';
-import FreelancerProfileModal from '../components/FreelancerProfileModal';
+import CreateRequestModal from '../../Components/company/CreateRequestModal';
+import FreelancerProfileModal from '../../Components/company/FreelancerProfileModal';
 
 export default function ExplorePage({ freelancers = [], onSubmit, search = '', activeFilter = 'all' }) {
     const [selectedFreelancer, setSelectedFreelancer] = useState(null);

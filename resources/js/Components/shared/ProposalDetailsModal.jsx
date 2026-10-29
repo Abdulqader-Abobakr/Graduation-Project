@@ -64,7 +64,7 @@ export default function ProposalDetailsModal({ proposal, onClose, onAccept, onCh
                       type="button"
                       onClick={() => onViewFreelancer(proposal.freelancerId || proposal.freelancer_id || proposal.freelancer?.id)}
                       className="text-sm font-bold text-primary hover:underline cursor-pointer flex items-center gap-1.5"
-                      title="عرض الملف الشخصي للمستقل"
+                      title="عرض الملف الشخصي للخبير"
                     >
                       <span>{proposal.freelancerName}</span>
                       <span className="text-xs text-slate-400 font-normal">(عرض الملف الشخصي)</span>

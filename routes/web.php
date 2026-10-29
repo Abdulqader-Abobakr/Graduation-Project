@@ -83,6 +83,8 @@ Route::middleware(['auth', 'role:company'])->group(function () {
         ->name('company.projects.deliverables.download');
     Route::get('/company/projects/{project}/deliverables/{deliverable}/view', [\App\Http\Controllers\Company\ProjectController::class, 'viewDeliverable'])
         ->name('company.projects.deliverables.view');
+    Route::post('/company/projects/{project}/disputes', [\App\Http\Controllers\Company\ProjectController::class, 'storeDispute'])
+        ->name('company.projects.disputes.store');
 });
 
 Route::get('/auth/confirm', function () {
@@ -116,6 +118,7 @@ Route::prefix('freelancer')
         Route::post('/projects/{id}/deliverables', [Freelancer\ProjectController::class, 'storeDeliverable'])->name('freelancer.projects.deliverables.store');
         Route::get('/projects/{project}/deliverables/{deliverable}/download', [Freelancer\ProjectController::class, 'downloadDeliverable'])->name('freelancer.projects.deliverables.download');
         Route::get('/projects/{project}/deliverables/{deliverable}/view', [Freelancer\ProjectController::class, 'viewDeliverable'])->name('freelancer.projects.deliverables.view');
+        Route::post('/projects/{project}/disputes', [Freelancer\ProjectController::class, 'storeDispute'])->name('freelancer.projects.disputes.store');
         Route::get('/services', [Freelancer\ServiceController::class, 'index'])->name('freelancer.services');
         Route::post('/services/portfolio', [Freelancer\ServiceController::class, 'storePortfolio'])->name('freelancer.portfolio.store');
         Route::post('/services/portfolio/{id}', [Freelancer\ServiceController::class, 'updatePortfolio'])->name('freelancer.portfolio.update');

@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, X } from 'lucide-react';
-import Sidebar from './components/NavItem';
-import Header from './components/Header.jsx';
+import Sidebar from '../Components/company/NavItem';
+import Header from '../Components/company/Header';
 import ExplorePage from './pages/ExplorePage';
 import MyRequestsPage from './pages/MyRequestsPage';
 import MyProjectsPage from './pages/MyProjectsPage';
 import ChatPage from './pages/ChatPage';
 import ProjectWorkspace from './pages/ProjectWorkspace';
 import { router, usePage } from '@inertiajs/react';
-import SilaAssistant from '../Components/SilaAssistant';
+import SilaAssistant from '../Components/shared/SilaAssistant';
 
 // 👇 official list — same as the old code
 const defaultIndustries = [

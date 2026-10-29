@@ -8,7 +8,7 @@ import {
     Send,
     Trash2,
 } from 'lucide-react';
-import FreelancerProfileModal from '../components/FreelancerProfileModal';
+import FreelancerProfileModal from '../../Components/company/FreelancerProfileModal';
 
 export default function ChatPage({ conversation, conversations = [], search = '' }) {
     const { auth } = usePage().props;

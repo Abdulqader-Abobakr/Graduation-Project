@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from '@inertiajs/react';
-import TermsAndPrivacyModal from '../Components/TermsAndPrivacyModal';
+import TermsAndPrivacyModal from '../Components/shared/TermsAndPrivacyModal';
 
 function Landing() {
   const [showTermsModal, setShowTermsModal] = useState(false);

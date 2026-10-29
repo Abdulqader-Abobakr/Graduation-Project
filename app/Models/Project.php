@@ -69,4 +69,16 @@ class Project extends Model
         return $this->hasOne(Proposal::class, 'brief_id', 'brief_id')
             ->where('status', 'accepted');
     }
+
+    public function disputes(): HasMany
+    {
+        return $this->hasMany(Dispute::class, 'project_id', 'id')->orderBy('created_at', 'desc');
+    }
+
+    public function activeDispute(): HasOne
+    {
+        return $this->hasOne(Dispute::class, 'project_id', 'id')
+            ->whereIn('status', ['open', 'under_review'])
+            ->latestOfMany();
+    }
 }

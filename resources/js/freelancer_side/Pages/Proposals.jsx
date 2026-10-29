@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import ProposalDetailsModal from '../Components/ProposalDetailsModal';
-import ProposalFormModal from '../Components/ProposalFormModal';
-import CompanyProfileModal from '../Components/CompanyProfileModal';
+import ProposalDetailsModal from '../../Components/shared/ProposalDetailsModal';
+import ProposalFormModal from '../../Components/freelancer/ProposalFormModal';
+import CompanyProfileModal from '../../Components/freelancer/CompanyProfileModal';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import {
   MessageSquare,

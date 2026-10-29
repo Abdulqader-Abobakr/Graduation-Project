@@ -13,10 +13,18 @@ import {
     RefreshCw,
     Link as LinkIcon,
     FileCheck2,
+    Scale,
 } from 'lucide-react';
+import DisputeModal from '../../Components/shared/DisputeModal';
+import DisputeBanner from '../../Components/shared/DisputeBanner';
 
 export default function ProjectWorkspace({ project, onBack }) {
     const [revisionModal, setRevisionModal] = useState({ isOpen: false, deliverableId: null });
+    const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
+
+    const disputes = project.disputes || [];
+    const activeDispute = project.active_dispute || disputes.find(d => ['open', 'under_review'].includes(d.status));
+    const latestResolvedDispute = disputes.find(d => d.status === 'resolved');
 
     // Auto-refresh: polls workspace changes every 4 seconds when tab is active and modal is closed
     useEffect(() => {
@@ -89,7 +97,30 @@ export default function ProjectWorkspace({ project, onBack }) {
                     <ChevronRight size={18} />
                     <span>العودة لقائمة المشاريع</span>
                 </button>
+
+                <button
+                    type="button"
+                    onClick={() => setIsDisputeModalOpen(true)}
+                    className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-2xs cursor-pointer ${
+                        activeDispute
+                            ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 ring-2 ring-amber-200'
+                            : 'border-rose-200 bg-rose-50/70 hover:bg-rose-100 text-rose-700'
+                    }`}
+                >
+                    <Scale size={15} className={activeDispute ? 'text-amber-600' : 'text-rose-600'} />
+                    <span>إبلاغ شكوى عن المشروع</span>
+                    {activeDispute && (
+                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    )}
+                </button>
             </div>
+
+            {/* Dispute Banner (if active or recently resolved) */}
+            <DisputeBanner
+                activeDispute={activeDispute}
+                latestResolvedDispute={latestResolvedDispute}
+                onOpenDisputeModal={() => setIsDisputeModalOpen(true)}
+            />
 
             {/* Project Overview Card */}
             <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs mb-8 space-y-4">
@@ -204,7 +235,7 @@ export default function ProjectWorkspace({ project, onBack }) {
                                         {isRevisionRequested && (
                                             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold border border-amber-200">
                                                 <AlertCircle size={14} />
-                                                <span>بانتظار تعديل المستقل</span>
+                                                <span>بانتظار تعديل الخبير</span>
                                             </span>
                                         )}
                                         {isSubmitted && (
@@ -424,6 +455,18 @@ export default function ProjectWorkspace({ project, onBack }) {
                     </div>
                 </div>
             )}
+
+            {/* Dispute Arbitration Modal */}
+            <DisputeModal
+                isOpen={isDisputeModalOpen}
+                onClose={() => setIsDisputeModalOpen(false)}
+                projectId={project.id}
+                endpoint={`/company/projects/${project.id}/disputes`}
+                activeDispute={activeDispute}
+                disputes={disputes}
+                userRole="client"
+                theme="company"
+            />
         </div>
     );
 }

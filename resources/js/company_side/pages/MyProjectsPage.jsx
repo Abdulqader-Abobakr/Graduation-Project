@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Plus, FolderOpen, Clock, CheckCircle2, CreditCard, AlertCircle } from 'lucide-react';
 import { router } from '@inertiajs/react';
-import FreelancerProfileModal from '../components/FreelancerProfileModal';
+import FreelancerProfileModal from '../../Components/company/FreelancerProfileModal';
 
 export default function MyProjectsPage({
     projects = [],

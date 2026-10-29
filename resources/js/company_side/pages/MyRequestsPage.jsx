@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { Bell, ChevronDown, ClipboardList, Edit3, Plus, Trash2, Send, FileText, Eye } from 'lucide-react';
 import { router } from '@inertiajs/react';
-import CreateRequestModal from '../components/CreateRequestModal';
-import ProposalDetailsModal from '../../freelancer_side/Components/ProposalDetailsModal';
-import FreelancerProfileModal from '../components/FreelancerProfileModal';
+import CreateRequestModal from '../../Components/company/CreateRequestModal';
+import ProposalDetailsModal from '../../Components/shared/ProposalDetailsModal';
+import FreelancerProfileModal from '../../Components/company/FreelancerProfileModal';
 
 const categoryLabels = {
     marketing_services: 'خدمات التسويق',
@@ -164,7 +164,7 @@ export default function MyRequestsPage({
                 <div>
                     <h1 className="text-2xl font-bold text-[#28251d]">الطلبات والعروض</h1>
                     <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
-                        إدارة طلباتك المنشورة ومتابعة العروض الواردة من المستقلين
+                        إدارة طلباتك المنشورة ومتابعة العروض الواردة من الخبراء
                     </p>
                 </div>
                 <button
@@ -198,7 +198,7 @@ export default function MyRequestsPage({
                     <div>
                         <p className="text-xs font-semibold text-slate-500">عدد العروض المتلقاة</p>
                         <p className="text-2xl font-black text-slate-800 mt-0.5">{stats.totalProposals}</p>
-                        <p className="text-[11px] text-slate-400 font-medium">عروض مقدمة من المستقلين</p>
+                        <p className="text-[11px] text-slate-400 font-medium">عروض مقدمة من الخبراء</p>
                     </div>
                 </div>
 
@@ -253,8 +253,8 @@ export default function MyRequestsPage({
                                     <span className="rounded-full bg-[#f7f6f2] px-3 py-1">{categoryLabels[request.category] || request.category}</span>
                                     <span className="rounded-full bg-[#f7f6f2] px-3 py-1">
                                         {request.providerType === 'specific'
-                                            ? `محدد: ${request.targetedFreelancer || 'مستقل'}`
-                                            : 'متاح لكل المستقلين'}
+                                            ? `محدد: ${request.targetedFreelancer || 'خبير'}`
+                                            : 'متاح لكل الخبراء'}
                                     </span>
                                     {request.proposalsCount > 0 ? (
                                         <button
@@ -331,13 +331,13 @@ export default function MyRequestsPage({
                                                                 <p className="text-sm font-bold text-[#28251d]">{proposal.title}</p>
                                                             </div>
                                                             <div className="flex items-center gap-2 text-xs text-[#7a7974] flex-wrap">
-                                                                <span>المستقل:</span>
+                                                                <span>الخبير:</span>
                                                                 {proposal.freelancerId ? (
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => setViewingFreelancerId(proposal.freelancerId)}
                                                                         className="font-bold text-primary hover:underline cursor-pointer"
-                                                                        title="عرض الملف الشخصي للمستقل"
+                                                                        title="عرض الملف الشخصي للخبير"
                                                                     >
                                                                         {proposal.freelancerName}
                                                                     </button>

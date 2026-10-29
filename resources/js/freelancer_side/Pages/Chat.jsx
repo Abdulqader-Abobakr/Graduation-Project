@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { usePage, router, Link } from '@inertiajs/react';
-import ProposalFormModal from '../Components/ProposalFormModal';
+import ProposalFormModal from '../../Components/freelancer/ProposalFormModal';
 import {
     ArrowRight,
     Clock,

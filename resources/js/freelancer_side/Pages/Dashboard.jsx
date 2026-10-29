@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from '@inertiajs/react';
-import ProposalFormModal from '../Components/ProposalFormModal';
-import CompanyProfileModal from '../Components/CompanyProfileModal';
+import ProposalFormModal from '../../Components/freelancer/ProposalFormModal';
+import CompanyProfileModal from '../../Components/freelancer/CompanyProfileModal';
 import {
   CheckCircle2,
   Clock,

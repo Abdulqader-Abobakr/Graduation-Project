@@ -4,8 +4,9 @@ namespace App\Http\Controllers\Freelancer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Conversation;
-use App\Models\Project;
 use App\Models\Deliverable;
+use App\Models\Dispute;
+use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -176,9 +177,30 @@ class ProjectController extends Controller
             'proposalViaBrief.milestones' => fn($q) => $q->select(['id', 'proposal_id', 'title', 'description', 'amount', 'status']),
             'client:id,user_name,avatar_path,city',
             'client.clientCompany:id,user_id,business_name,company_description,industry',
+            'disputes' => fn($q) => $q->with(['initiatedBy:id,user_name', 'againstUser:id,user_name'])->orderBy('created_at', 'desc'),
         ])->findOrFail($id);
 
         abort_if($project->freelancer_id !== auth()->id(), 403);
+
+        $disputes = $project->disputes->map(fn(Dispute $disp) => [
+            'id'                        => (string) $disp->id,
+            'reason'                    => $disp->reason,
+            'details'                   => $disp->details,
+            'status'                    => $disp->status,
+            'status_label'              => $disp->status_label,
+            'resolution_decision'       => $disp->resolution_decision,
+            'resolution_decision_label' => $disp->resolution_decision_label,
+            'freelancer_payout_amount'  => (float) $disp->freelancer_payout_amount,
+            'client_refund_amount'      => (float) $disp->client_refund_amount,
+            'admin_notes'               => $disp->admin_notes,
+            'is_initiator'              => (string) $disp->initiated_by_user_id === (string) auth()->id(),
+            'initiated_by_name'         => $disp->initiatedBy?->user_name ?? 'مستخدم',
+            'against_user_name'         => $disp->againstUser?->user_name ?? 'الطرف الآخر',
+            'created_at'                => $disp->created_at ? $disp->created_at->locale('ar')->translatedFormat('d F Y - h:i a') : null,
+            'resolved_at'               => $disp->resolved_at ? $disp->resolved_at->locale('ar')->translatedFormat('d F Y - h:i a') : null,
+        ]);
+
+        $activeDispute = $disputes->first(fn($d) => in_array($d['status'], ['open', 'under_review']));
 
         $proposal = $project->originalProposal ?? $project->proposalViaBrief;
         $totalRevisionLimit = (int) ($proposal?->revision_limit ?? 2);
@@ -252,6 +274,8 @@ class ProjectController extends Controller
             'revisionLimit'      => $totalRevisionLimit,
             'remainingRevisions' => $projectRemainingRevisions,
             'chatId'             => $conversation ? (string) $conversation->id : null,
+            'disputes'           => $disputes,
+            'active_dispute'     => $activeDispute,
 
             'client' => [
                 'id'          => (string) $project->client_id,
@@ -557,5 +581,44 @@ class ProjectController extends Controller
 
         $publicUrl = 'https://uvgwjjpzkzmgeolkqnuf.supabase.co/storage/v1/object/public/deliverables-files/' . $cleanPath;
         return redirect()->away($publicUrl);
+    }
+
+    /**
+     * File a new dispute for arbitration from the freelancer.
+     */
+    public function storeDispute(Request $request, $project)
+    {
+        $projectModel = $project instanceof Project ? $project : Project::findOrFail($project);
+        abort_if((string) $projectModel->freelancer_id !== (string) auth()->id(), 403, 'غير مصرح لك بتقديم شكوى على هذا المشروع.');
+
+        // Check if there is an existing active dispute
+        $hasActiveDispute = Dispute::where('project_id', $projectModel->id)
+            ->whereIn('status', ['open', 'under_review'])
+            ->exists();
+
+        if ($hasActiveDispute) {
+            return back()->with('error', 'توجد بالفعل شكوى / نزاع مفتوح قيد التحكيم الإداري لهذا المشروع.');
+        }
+
+        $validated = $request->validate([
+            'reason'  => 'required|string|max:255',
+            'details' => 'required|string|min:15|max:5000',
+        ], [
+            'reason.required'  => 'يرجى اختيار سبب النزاع أو الشكوى.',
+            'details.required' => 'يرجى كتابة شرح مفصل للمشكلة والطلبات.',
+            'details.min'      => 'يرجى توضيح تفاصيل الشكوى بأكثر من 15 حرفاً لتمكين الإدارة من الفحص والتحكيم.',
+            'details.max'      => 'تجاوزت تفاصيل الشكوى الحد المسموح به (5000 حرف).',
+        ]);
+
+        Dispute::create([
+            'project_id'           => $projectModel->id,
+            'initiated_by_user_id' => auth()->id(),
+            'against_user_id'      => $projectModel->client_id,
+            'reason'               => $validated['reason'],
+            'details'              => $validated['details'],
+            'status'               => 'open',
+        ]);
+
+        return back()->with('success', 'تم تسجيل الشكوى وإحالتها إلى إدارة التحكيم بنجاح. سيقوم الفريق الإداري بالاطلاع على مجريات المشروع والتواصل لفض النزاع.');
     }
 }

@@ -9,7 +9,7 @@ import {
   ChevronLeft,
 } from 'lucide-react';
 import { Link } from '@inertiajs/react';
-import CompanyProfileModal from '../Components/CompanyProfileModal';
+import CompanyProfileModal from '../../Components/freelancer/CompanyProfileModal';
 
 const normalizeImageUrl = (url) => {
   if (!url || typeof url !== 'string') return null;

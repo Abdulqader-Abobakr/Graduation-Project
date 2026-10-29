@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle2, Eye, EyeOff, KeyRound, Lock, Mail, ShieldCheck, Sparkles, UserCog, X } from 'lucide-react';
 import { useForm, usePage, router } from '@inertiajs/react';
-import Sidebar from './components/NavItem';
-import Header from './components/Header.jsx';
-import SilaAssistant from '../Components/SilaAssistant';
+import Sidebar from '../Components/company/NavItem';
+import Header from '../Components/company/Header';
+import SilaAssistant from '../Components/shared/SilaAssistant';
 
 export default function ProfileSettings({ pageTitle, user = {} }) {
     const { flash = {} } = usePage().props;

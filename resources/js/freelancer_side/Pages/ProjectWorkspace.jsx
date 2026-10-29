@@ -21,9 +21,12 @@ import {
   ShieldCheck,
   Send,
   Layers,
+  Scale,
 } from 'lucide-react';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
-import ProposalDetailsModal from '../Components/ProposalDetailsModal';
+import ProposalDetailsModal from '../../Components/shared/ProposalDetailsModal';
+import DisputeModal from '../../Components/shared/DisputeModal';
+import DisputeBanner from '../../Components/shared/DisputeBanner';
 
 const SAFE_URL_REGEX = /^https?:\/\/(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}(?::\d{1,5})?(?:[\/?#][^\s"\'<>`\\^]*)?$/i;
 
@@ -32,6 +35,7 @@ export default function ProjectWorkspace({ pageTitle, project }) {
   const flash = props.flash ?? {};
 
   const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
+  const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [showReuploadForm, setShowReuploadForm] = useState(false);
@@ -40,6 +44,10 @@ export default function ProjectWorkspace({ pageTitle, project }) {
   const lastDisplayedFlashRef = useRef(null);
 
   if (!project) return null;
+
+  const disputes = project.disputes || [];
+  const activeDispute = project.active_dispute || disputes.find((d) => ['open', 'under_review'].includes(d.status));
+  const latestResolvedDispute = disputes.find((d) => d.status === 'resolved');
 
   // Find active or first task to select initially
   const defaultTask =
@@ -166,7 +174,30 @@ export default function ProjectWorkspace({ pageTitle, project }) {
             <ChevronRight size={18} className="transition-transform group-hover:translate-x-0.5" />
             <span>العودة لقائمة المشاريع</span>
           </Link>
+
+          <button
+            type="button"
+            onClick={() => setIsDisputeModalOpen(true)}
+            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-2xs cursor-pointer ${
+              activeDispute
+                ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 ring-2 ring-amber-200'
+                : 'border-rose-200 bg-rose-50/70 hover:bg-rose-100 text-rose-700'
+            }`}
+          >
+            <Scale size={15} className={activeDispute ? 'text-amber-600' : 'text-rose-600'} />
+            <span>إبلاغ شكوى عن المشروع</span>
+            {activeDispute && (
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+            )}
+          </button>
         </div>
+
+        {/* Dispute Banner (if active or recently resolved) */}
+        <DisputeBanner
+          activeDispute={activeDispute}
+          latestResolvedDispute={latestResolvedDispute}
+          onOpenDisputeModal={() => setIsDisputeModalOpen(true)}
+        />
 
         {/* Flash Notifications */}
         {flash.error && (
@@ -855,6 +886,18 @@ export default function ProjectWorkspace({ pageTitle, project }) {
           onClose={() => setIsProposalModalOpen(false)}
         />
       )}
+
+      {/* Dispute Arbitration Modal */}
+      <DisputeModal
+        isOpen={isDisputeModalOpen}
+        onClose={() => setIsDisputeModalOpen(false)}
+        projectId={project.id}
+        endpoint={`/freelancer/projects/${project.id}/disputes`}
+        activeDispute={activeDispute}
+        disputes={disputes}
+        userRole="freelancer"
+        theme="freelancer"
+      />
     </div>
   );
 }
