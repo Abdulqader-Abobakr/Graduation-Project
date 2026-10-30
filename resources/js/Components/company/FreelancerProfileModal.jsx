@@ -305,10 +305,6 @@ export default function FreelancerProfileModal({
                                                     <span>{city}</span>
                                                 </span>
                                             )}
-                                            <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-200 font-bold">
-                                                <CheckCircle2 size={13} className="text-emerald-600" />
-                                                <span>{completedCount} مشاريع منجزة</span>
-                                            </span>
                                             {joinedAt && (
                                                 <span className="inline-flex items-center gap-1.5 text-slate-400">
                                                     <Calendar size={13} />

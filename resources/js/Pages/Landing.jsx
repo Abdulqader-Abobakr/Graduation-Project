@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from '@inertiajs/react';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Mail } from 'lucide-react';
 import TermsAndPrivacyModal from '../Components/shared/TermsAndPrivacyModal';
+import ContactEmailModal from '../Components/shared/ContactEmailModal';
 
 function Landing() {
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -30,7 +32,13 @@ function Landing() {
               <a href="#how-it-works" className="hover:text-primary font-medium">كيف يعمل</a>
               <a href="#companies" className="hover:text-primary font-medium">لرواد الأعمال</a>
               <a href="#freelancers" className="hover:text-primary font-medium">للخبراء</a>
-              <a href="#contact" className="hover:text-primary font-medium">تواصل معنا</a>
+              <button
+                type="button"
+                onClick={() => setShowEmailModal(true)}
+                className="hover:text-primary font-medium cursor-pointer"
+              >
+                تواصل معنا
+              </button>
             </nav>
 
             {/* Auth Buttons */}
@@ -74,14 +82,28 @@ function Landing() {
                 ['#freelancers', 'للخبراء'],
                 ['#contact', 'تواصل معنا'],
               ].map(([href, label]) => (
-                <a
-                  key={href}
-                  href={href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-primary"
-                >
-                  {label}
-                </a>
+                href === '#contact' ? (
+                  <button
+                    key={href}
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setShowEmailModal(true);
+                    }}
+                    className="rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-primary text-right cursor-pointer"
+                  >
+                    {label}
+                  </button>
+                ) : (
+                  <a
+                    key={href}
+                    href={href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-primary"
+                  >
+                    {label}
+                  </a>
+                )
               ))}
 
               <div className="mt-2 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
@@ -393,16 +415,18 @@ function Landing() {
                 </ul>
               </div>
 
-              <div>
+              <div id="contact">
                 <h4 className="font-semibold text-slate-900 mb-4">الدعم</h4>
                 <ul className="space-y-2 text-sm text-slate-600">
                   <li>
-                    <a
-                      href="mailto:sila.platform.2026@gmail.com"
-                      className="hover:text-primary transition"
+                    <button
+                      type="button"
+                      onClick={() => setShowEmailModal(true)}
+                      className="hover:text-primary transition cursor-pointer text-right inline-flex items-center gap-1.5"
                     >
-                      ايميل
-                    </a>
+                      <Mail className="w-4 h-4 text-primary shrink-0" />
+                      <span>ايميل</span>
+                    </button>
                   </li>
                 </ul>
               </div>
@@ -434,6 +458,11 @@ function Landing() {
         isOpen={showTermsModal}
         onClose={() => setShowTermsModal(false)}
         requireDecision={false}
+      />
+
+      <ContactEmailModal
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
       />
     </div>
   );

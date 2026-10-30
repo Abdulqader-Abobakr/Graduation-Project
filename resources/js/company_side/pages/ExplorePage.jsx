@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { User } from 'lucide-react';
+import { User, Star } from 'lucide-react';
 import CreateRequestModal from '../../Components/company/CreateRequestModal';
 import FreelancerProfileModal from '../../Components/company/FreelancerProfileModal';
 
@@ -88,6 +88,19 @@ export default function ExplorePage({ freelancers = [], onSubmit, search = '', a
                                     <p className="text-xs text-[#7a7974] truncate mt-0.5">
                                         {freelancer.jobTitle || 'خبير محترف'}
                                     </p>
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                        {freelancer.ratings_count > 0 ? (
+                                            <span className="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 text-xs">
+                                                <Star size={11} className="fill-amber-500 text-amber-500" />
+                                                <span>{freelancer.rating_average}</span>
+                                                <span className="text-[10px] text-amber-600/80 font-normal">({freelancer.ratings_count})</span>
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                                                جديد
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             <p className="text-sm text-[#7a7974] line-clamp-3 min-h-18">

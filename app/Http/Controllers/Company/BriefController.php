@@ -81,6 +81,8 @@ class BriefController extends Controller
                         ->select([
                             'sila_p.proposals.*',
                             'fl.user_name as freelancer_name',
+                            DB::raw("(SELECT COUNT(rating) FROM sila_p.projects pr WHERE pr.freelancer_id = fl.id AND pr.status = 'completed' AND pr.rating IS NOT NULL) as freelancer_ratings_count"),
+                            DB::raw("(SELECT ROUND(AVG(rating), 1) FROM sila_p.projects pr WHERE pr.freelancer_id = fl.id AND pr.status = 'completed' AND pr.rating IS NOT NULL) as freelancer_rating_avg"),
                         ]),
                     'proposals.milestones:id,proposal_id,title,description,amount,status',
                 ])
@@ -101,6 +103,8 @@ class BriefController extends Controller
                         'id' => (string) $proposal->id,
                         'freelancerId' => (string) $proposal->freelancer_id,
                         'freelancerName' => $proposal->freelancer_name ?? 'خبير',
+                        'freelancerRatingsCount' => (int) ($proposal->freelancer_ratings_count ?? 0),
+                        'freelancerRatingAverage' => $proposal->freelancer_ratings_count > 0 ? (float) $proposal->freelancer_rating_avg : null,
                         'title' => $proposal->title,
                         'price' => (float) $proposal->price,
                         'revision_limit' => $proposal->revision_limit,
@@ -132,6 +136,8 @@ class BriefController extends Controller
                 'sila_p.projects.freelancer_id',
                 'sila_p.projects.title',
                 'sila_p.projects.status',
+                'sila_p.projects.rating',
+                'sila_p.projects.rated_at',
                 'sila_p.projects.created_at',
                 'fl.user_name as freelancer_name',
             ])
@@ -142,6 +148,8 @@ class BriefController extends Controller
                 'freelancerId' => (string) $project->freelancer_id,
                 'title'        => $project->title,
                 'status'       => $project->status,
+                'rating'       => $project->rating,
+                'rated_at'     => $project->rated_at?->toISOString(),
                 'client'       => $project->freelancer_name ?? 'خبير',
             ])
             ->all();
@@ -161,6 +169,8 @@ class BriefController extends Controller
                     'u.created_at as user_created_at',
                     DB::raw('(SELECT p.title FROM sila_p.portfolios p WHERE p.freelancer_id = sila_p.freelancers.id LIMIT 1) as first_portfolio_title'),
                     DB::raw("(SELECT COUNT(*) FROM sila_p.projects pr WHERE pr.freelancer_id = u.id AND pr.status = 'completed') as completed_projects_count"),
+                    DB::raw("(SELECT COUNT(rating) FROM sila_p.projects pr WHERE pr.freelancer_id = u.id AND pr.status = 'completed' AND pr.rating IS NOT NULL) as ratings_count"),
+                    DB::raw("(SELECT ROUND(AVG(rating), 1) FROM sila_p.projects pr WHERE pr.freelancer_id = u.id AND pr.status = 'completed' AND pr.rating IS NOT NULL) as rating_average"),
                 ])
                 ->with(['portfolios:id,freelancer_id,title,marketing_domain,images'])
                 ->orderByDesc('sila_p.freelancers.created_at')
@@ -175,6 +185,8 @@ class BriefController extends Controller
                     'bio' => $freelancer->bio,
                     'joinedAt' => $freelancer->user_created_at ? Carbon::parse($freelancer->user_created_at)->diffForHumans() : null,
                     'completedProjectsCount' => (int) ($freelancer->completed_projects_count ?? 0),
+                    'ratings_count' => (int) ($freelancer->ratings_count ?? 0),
+                    'rating_average' => $freelancer->ratings_count > 0 ? (float) $freelancer->rating_average : null,
                     'industries' => array_values(array_unique(array_merge(
                         $freelancer->experienced_sectors ?? [],
                         $freelancer->marketing_specialties ?? [],
@@ -211,6 +223,8 @@ class BriefController extends Controller
                 'u.created_at as user_created_at',
                 DB::raw('(SELECT p.title FROM sila_p.portfolios p WHERE p.freelancer_id = sila_p.freelancers.id LIMIT 1) as first_portfolio_title'),
                 DB::raw("(SELECT COUNT(*) FROM sila_p.projects pr WHERE pr.freelancer_id = u.id AND pr.status = 'completed') as completed_projects_count"),
+                DB::raw("(SELECT COUNT(rating) FROM sila_p.projects pr WHERE pr.freelancer_id = u.id AND pr.status = 'completed' AND pr.rating IS NOT NULL) as ratings_count"),
+                DB::raw("(SELECT ROUND(AVG(rating), 1) FROM sila_p.projects pr WHERE pr.freelancer_id = u.id AND pr.status = 'completed' AND pr.rating IS NOT NULL) as rating_average"),
             ])
             ->with(['portfolios:id,freelancer_id,title,marketing_domain,images'])
             ->first();
@@ -231,6 +245,8 @@ class BriefController extends Controller
                 'bio' => null,
                 'joinedAt' => $user->created_at?->diffForHumans(),
                 'completedProjectsCount' => 0,
+                'ratings_count' => 0,
+                'rating_average' => null,
                 'industries' => [],
                 'marketing_specialties' => [],
                 'experienced_sectors' => [],
@@ -255,6 +271,8 @@ class BriefController extends Controller
             'bio' => $freelancer->bio,
             'joinedAt' => $freelancer->user_created_at ? Carbon::parse($freelancer->user_created_at)->diffForHumans() : null,
             'completedProjectsCount' => (int) ($freelancer->completed_projects_count ?? 0),
+            'ratings_count' => (int) ($freelancer->ratings_count ?? 0),
+            'rating_average' => $freelancer->ratings_count > 0 ? (float) $freelancer->rating_average : null,
             'industries' => array_values(array_unique(array_merge(
                 $freelancer->experienced_sectors ?? [],
                 $freelancer->marketing_specialties ?? [],
@@ -398,12 +416,17 @@ class BriefController extends Controller
         $project = Project::query()
             ->where('client_id', $request->user()->id)
             ->with([
+                'freelancer:id,user_name,avatar_path',
                 'deliverables' => fn($q) => $q->orderBy('created_at', 'asc'),
                 'originalProposal:id,project_id,revision_limit',
                 'proposalViaBrief:id,brief_id,revision_limit',
                 'disputes' => fn($q) => $q->with(['initiatedBy:id,user_name', 'againstUser:id,user_name'])->orderBy('created_at', 'desc'),
             ])
             ->findOrFail($projectId);
+
+        $freelancerRatingStats = $project->freelancer
+            ? $project->freelancer->getFreelancerRatingStats()
+            : ['rating_average' => null, 'ratings_count' => 0];
 
         $proposal = $project->originalProposal ?? $project->proposalViaBrief;
         $totalRevisionLimit = (int) ($proposal?->revision_limit ?? 2);
@@ -434,6 +457,12 @@ class BriefController extends Controller
             'id' => (string) $project->id,
             'title' => $project->title,
             'status' => $project->status,
+            'rating' => $project->rating,
+            'rated_at' => $project->rated_at?->toISOString(),
+            'freelancer_id' => (string) $project->freelancer_id,
+            'freelancer_name' => $project->freelancer?->user_name ?? 'الخبير',
+            'freelancer_rating_average' => $freelancerRatingStats['rating_average'],
+            'freelancer_ratings_count'  => $freelancerRatingStats['ratings_count'],
             'revision_limit' => $totalRevisionLimit,
             'remaining_revisions' => $projectRemainingRevisions,
             'disputes' => $disputes,

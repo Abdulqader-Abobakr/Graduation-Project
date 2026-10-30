@@ -22,6 +22,7 @@ import {
   Send,
   Layers,
   Scale,
+  Star,
 } from 'lucide-react';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import ProposalDetailsModal from '../../Components/shared/ProposalDetailsModal';
@@ -253,6 +254,22 @@ export default function ProjectWorkspace({ pageTitle, project }) {
                 >
                   {project.status === 'completed' ? 'مشروع مكتمل' : 'قيد التنفيذ والمتابعة'}
                 </span>
+                {project.status === 'completed' && project.rating && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-950 text-xs font-bold">
+                    <Star size={13} className="text-amber-500 fill-amber-500 shrink-0" />
+                    <span>تقييم العميل:</span>
+                    <div className="flex items-center gap-0.5" dir="ltr">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          size={12}
+                          className={s <= project.rating ? 'text-amber-500 fill-amber-500' : 'text-slate-200 fill-slate-100'}
+                        />
+                      ))}
+                    </div>
+                    <span className="font-black text-amber-700">{project.rating} / 5</span>
+                  </div>
+                )}
               </div>
               <h1 className="text-lg sm:text-2xl font-semibold text-slate-800 leading-snug break-words">
                 {project.title}

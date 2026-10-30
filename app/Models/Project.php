@@ -21,10 +21,14 @@ class Project extends Model
         'title',
         'status',
         'progress',
+        'rating',
+        'rated_at',
     ];
 
     protected $casts = [
         'progress' => 'integer',
+        'rating' => 'integer',
+        'rated_at' => 'datetime',
     ];
 
     public function brief(): BelongsTo

@@ -52,6 +52,11 @@ class ProfileController extends Controller
             })->values()->all()
             : [];
 
+        $ratingStats = $user->getFreelancerRatingStats();
+        $completedProjectsCount = \App\Models\Project::where('freelancer_id', $user->id)
+            ->where('status', 'completed')
+            ->count();
+
         return Inertia::render('freelancer/Profile', [
             'pageTitle'  => $user->user_name ?: 'الملف الشخصي',
             'user'       => [
@@ -66,6 +71,11 @@ class ProfileController extends Controller
                 'bio'                    => $freelancer?->bio ?? '',
                 'marketing_specialties'  => $freelancer?->marketing_specialties ?? [],
                 'experienced_sectors'    => $freelancer?->experienced_sectors ?? [],
+            ],
+            'stats' => [
+                'rating_average' => $ratingStats['rating_average'],
+                'ratings_count'  => $ratingStats['ratings_count'],
+                'completed_projects_count' => $completedProjectsCount,
             ],
             'portfolios' => $portfolios,
         ]);

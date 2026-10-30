@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { Plus, FolderOpen, Clock, CheckCircle2, CreditCard, AlertCircle } from 'lucide-react';
+import { Plus, FolderOpen, Clock, CheckCircle2, CreditCard, AlertCircle, Star } from 'lucide-react';
 import { router } from '@inertiajs/react';
 import FreelancerProfileModal from '../../Components/company/FreelancerProfileModal';
+import ProjectRatingModal from '../../Components/shared/ProjectRatingModal';
 
 export default function MyProjectsPage({
     projects = [],
@@ -11,6 +12,7 @@ export default function MyProjectsPage({
     onFilterChange,
 }) {
     const [viewingFreelancerId, setViewingFreelancerId] = useState(null);
+    const [ratingProject, setRatingProject] = useState(null);
 
     const filteredProjects = useMemo(() => {
         const q = search.trim().toLowerCase();
@@ -129,9 +131,29 @@ export default function MyProjectsPage({
                                             )}
                                         </p>
                                     </div>
-                                    <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${config.pillClass}`}>
-                                        {config.label}
-                                    </span>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        {project.status === 'completed' && (
+                                            project.rating ? (
+                                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold shrink-0">
+                                                    <Star size={13} className="text-amber-500 fill-amber-500" />
+                                                    <span>{project.rating} / 5</span>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setRatingProject(project)}
+                                                    className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-xs transition-colors shrink-0 cursor-pointer"
+                                                    title="تقييم أداء الخبير في هذا المشروع"
+                                                >
+                                                    <Star size={13} className="fill-white" />
+                                                    <span>قيّم الخبير ★</span>
+                                                </button>
+                                            )
+                                        )}
+                                        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${config.pillClass}`}>
+                                            {config.label}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 {isPendingPayment && (
@@ -189,6 +211,18 @@ export default function MyProjectsPage({
                 isOpen={Boolean(viewingFreelancerId)}
                 freelancer={viewingFreelancerId}
                 onClose={() => setViewingFreelancerId(null)}
+            />
+
+            <ProjectRatingModal
+                isOpen={Boolean(ratingProject)}
+                project={ratingProject}
+                onClose={() => setRatingProject(null)}
+                onSuccess={(newRating) => {
+                    if (ratingProject) {
+                        ratingProject.rating = newRating;
+                    }
+                    setRatingProject(null);
+                }}
             />
         </div>
     );

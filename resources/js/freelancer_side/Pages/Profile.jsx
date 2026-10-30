@@ -222,10 +222,12 @@ export default function Profile({
   user: initialUser = {},
   freelancer: initialFreelancer = {},
   portfolios: initialPortfolios = [],
+  stats: initialStats = {},
 }) {
   const user = initialUser || {};
   const freelancer = initialFreelancer || {};
   const portfolios = Array.isArray(initialPortfolios) ? initialPortfolios : [];
+  const stats = initialStats || {};
 
   const { props } = usePage();
   const flash = props.flash ?? {};
@@ -584,8 +586,10 @@ export default function Profile({
 
       {/* Page Header */}
       <header className="border-b border-slate-200/80 pb-5">
-        <h1 className="text-2xl font-bold text-slate-800"> إدارة المعلومات الشخصية، التخصصات والخدمات، ومعرض الأعمال.</h1>
-
+        <h1 className="text-2xl font-bold text-slate-800">إدارة الملف المهني والشخصي</h1>
+        <p className="text-xs text-slate-500 mt-1">
+          إدارة المعلومات الشخصية، التخصصات والخدمات، ومعرض الأعمال.
+        </p>
       </header>
 
       {/* ============================================================ */}

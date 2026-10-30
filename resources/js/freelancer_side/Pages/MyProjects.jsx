@@ -7,6 +7,7 @@ import {
   MessageSquare,
   Layers,
   ChevronLeft,
+  Star,
 } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 import CompanyProfileModal from '../../Components/freelancer/CompanyProfileModal';
@@ -276,6 +277,26 @@ function ProjectCard({ project, onViewCompany }) {
         <h2 className="text-sm sm:text-base font-semibold text-slate-800 mb-3 group-hover:text-[#2a7de1] transition-colors line-clamp-2 leading-snug">
           {project.title}
         </h2>
+
+        {/* Client Rating Celebration Badge (if completed & rated) */}
+        {isCompleted && project.rating && (
+          <div className="mb-3.5 flex items-center justify-between p-2.5 rounded-xl bg-amber-50/90 border border-amber-200 text-amber-950 text-xs font-bold">
+            <span className="flex items-center gap-1.5">
+              <Star size={14} className="text-amber-500 fill-amber-500 shrink-0" />
+              <span>تقييم العميل:</span>
+            </span>
+            <div className="flex items-center gap-1" dir="ltr">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star
+                  key={s}
+                  size={12}
+                  className={s <= project.rating ? 'text-amber-500 fill-amber-500' : 'text-slate-200 fill-slate-100'}
+                />
+              ))}
+              <span className="ms-1 font-black text-amber-700">{project.rating} / 5</span>
+            </div>
+          </div>
+        )}
 
         {/* Milestones / Progress Bar */}
         <div className="space-y-1.5 mb-4">

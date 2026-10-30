@@ -26,8 +26,13 @@ class DashboardController extends Controller
         $startOfMonth = now()->startOfMonth()->toDateTimeString();
         $startOfNextMonth = now()->startOfMonth()->addMonth()->toDateTimeString();
 
-        $stats = Cache::remember("freelancer_dashboard_stats_{$user->id}", 30, function () use ($user, $startOfMonth, $startOfNextMonth) {
-            return \Illuminate\Support\Facades\DB::selectOne("
+        $cacheKey = "freelancer_dashboard_stats_{$user->id}";
+        $stats = Cache::get($cacheKey);
+
+        if (!is_array($stats) || $stats instanceof \__PHP_Incomplete_Class) {
+            Cache::forget($cacheKey);
+
+            $row = \Illuminate\Support\Facades\DB::selectOne("
                 SELECT 
                     (SELECT COUNT(*) FROM sila_p.projects WHERE freelancer_id = :uid1 AND status = 'active') as active_projects,
                     (SELECT COALESCE(SUM(t.amount), 0) 
@@ -37,23 +42,44 @@ class DashboardController extends Controller
                         AND t.verification_status = 'verified' 
                         AND t.created_at >= :start 
                         AND t.created_at < :end) as monthly_earnings,
-                    (SELECT COALESCE(SUM(unread_count), 0) FROM sila_p.conversations WHERE freelancer_id = :uid3) as unread_messages
+                    (SELECT COALESCE(SUM(unread_count), 0) FROM sila_p.conversations WHERE freelancer_id = :uid3) as unread_messages,
+                    (SELECT COUNT(rating) FROM sila_p.projects WHERE freelancer_id = :uid4 AND status = 'completed' AND rating IS NOT NULL) as ratings_count,
+                    (SELECT ROUND(AVG(rating), 1) FROM sila_p.projects WHERE freelancer_id = :uid5 AND status = 'completed' AND rating IS NOT NULL) as rating_average
             ", [
                 'uid1'  => $user->id,
                 'uid2'  => $user->id,
                 'uid3'  => $user->id,
+                'uid4'  => $user->id,
+                'uid5'  => $user->id,
                 'start' => $startOfMonth,
                 'end'   => $startOfNextMonth,
             ]);
-        });
+
+            $stats = [
+                'active_projects'  => (int) ($row->active_projects ?? 0),
+                'monthly_earnings' => (float) ($row->monthly_earnings ?? 0),
+                'unread_messages'  => (int) ($row->unread_messages ?? 0),
+                'ratings_count'    => (int) ($row->ratings_count ?? 0),
+                'rating_average'   => $row && $row->rating_average !== null ? (float) $row->rating_average : null,
+            ];
+
+            Cache::put($cacheKey, $stats, 30);
+        }
+
+        $ratingsCount = (int) ($stats['ratings_count'] ?? 0);
+        $ratingAverage = $ratingsCount > 0 && isset($stats['rating_average']) && $stats['rating_average'] !== null
+            ? (float) $stats['rating_average']
+            : null;
 
         $statsData = [
-            'activeProjects'      => (string) ($stats->active_projects ?? 0),
-            'monthlyEarnings'     => number_format((float) ($stats->monthly_earnings ?? 0)),
+            'activeProjects'      => (string) ($stats['active_projects'] ?? 0),
+            'monthlyEarnings'     => number_format((float) ($stats['monthly_earnings'] ?? 0)),
             'earningsChange'      => '↑ 0%',
-            'rating'              => '4.8',
+            'rating'              => $ratingAverage !== null ? (string) $ratingAverage : null,
+            'ratingAverage'       => $ratingAverage,
+            'ratingsCount'        => $ratingsCount,
             'completionRate'      => '95',
-            'unreadMessagesCount' => (int) ($stats->unread_messages ?? 0),
+            'unreadMessagesCount' => (int) ($stats['unread_messages'] ?? 0),
         ];
 
         $openBriefs = $this->getOpenBriefs($user, $search);

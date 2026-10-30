@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useForm, Link } from '@inertiajs/react';
 import {
     ChevronRight,
+    ChevronDown,
     CreditCard,
     Upload,
     CheckCircle,
@@ -13,9 +14,9 @@ import {
 } from 'lucide-react';
 
 const PAYMENT_METHODS = [
-    { value: 'حوالة محلية', label: 'حوالة صرافة محلية' },
+    { value: 'التحويل عبر شبكة صرافة محلية', label: 'التحويل عبر شبكة صرافة محلية' },
     { value: 'محفظة إلكترونية', label: 'محفظة إلكترونية (فلوسك، جيب، كاش، إلخ)' },
-    { value: 'تحويل بنكي', label: 'تحويل بنكي مباشر' },
+    { value: 'بنك الكريمي', label: 'بنك الكريمي' },
 ];
 
 export default function PaymentPage({ project }) {
@@ -88,7 +89,7 @@ export default function PaymentPage({ project }) {
                     </div>
 
                     <p className="text-sm text-slate-600 leading-relaxed mb-6">
-                        للبدء في المشروع، يرجى تحويل مبلغ المشروع عبر شبكات الصرافة المحلية أو المحافظ الإلكترونية إلى البيانات التالية:
+                        للبدء في المشروع، يرجى تحويل مبلغ المشروع عبر بنك الكريمي أو شبكات الصرافة المحلية أو المحافظ الإلكترونية إلى البيانات التالية:
                     </p>
 
                     <div className="space-y-4 bg-amber-50/70 rounded-xl p-5 border border-amber-100">
@@ -124,17 +125,28 @@ export default function PaymentPage({ project }) {
                     {/* Payment Method Select */}
                     <div className="space-y-2">
                         <label className="text-sm font-bold text-slate-700 block">طريقة الدفع</label>
-                        <select
-                            value={data.payment_method}
-                            onChange={(e) => setData('payment_method', e.target.value)}
-                            required
-                            className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all text-sm font-bold appearance-none cursor-pointer"
-                        >
-                            <option value="">اختر طريقة الدفع</option>
-                            {PAYMENT_METHODS.map((method) => (
-                                <option key={method.value} value={method.value}>{method.label}</option>
-                            ))}
-                        </select>
+                        <div className="relative">
+                            <select
+                                value={data.payment_method}
+                                onChange={(e) => setData('payment_method', e.target.value)}
+                                required
+                                className={`w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all text-sm appearance-none cursor-pointer pl-10 ${
+                                    !data.payment_method ? 'text-slate-400 font-medium' : 'text-slate-800 font-bold'
+                                }`}
+                            >
+                                <option value="" disabled hidden>
+                                    اختر طريقة الدفع
+                                </option>
+                                {PAYMENT_METHODS.map((method) => (
+                                    <option key={method.value} value={method.value} className="text-slate-800 font-bold">
+                                        {method.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-4 text-slate-400">
+                                <ChevronDown size={18} />
+                            </div>
+                        </div>
                         {errors.payment_method && <p className="text-red-500 text-xs">{errors.payment_method}</p>}
                     </div>
 

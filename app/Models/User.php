@@ -92,4 +92,36 @@ class User extends Authenticatable
     {
         return $this->hasMany(Proposal::class, 'freelancer_id', 'id');
     }
+
+    public function freelancerProjects(): HasMany
+    {
+        return $this->hasMany(Project::class, 'freelancer_id', 'id');
+    }
+
+    public function clientProjects(): HasMany
+    {
+        return $this->hasMany(Project::class, 'client_id', 'id');
+    }
+
+    /**
+     * Get the freelancer's rating statistics.
+     *
+     * @return array{rating_average: float|null, ratings_count: int}
+     */
+    public function getFreelancerRatingStats(): array
+    {
+        $stats = Project::where('freelancer_id', $this->id)
+            ->where('status', 'completed')
+            ->whereNotNull('rating')
+            ->selectRaw('COUNT(rating) as count, ROUND(AVG(rating), 1) as avg')
+            ->first();
+
+        $count = (int) ($stats->count ?? 0);
+        $avg = $count > 0 ? (float) $stats->avg : null;
+
+        return [
+            'rating_average' => $avg,
+            'ratings_count'  => $count,
+        ];
+    }
 }

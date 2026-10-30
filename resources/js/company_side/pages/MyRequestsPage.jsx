@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Bell, ChevronDown, ClipboardList, Edit3, Plus, Trash2, Send, FileText, Eye } from 'lucide-react';
+import { Bell, ChevronDown, ClipboardList, Edit3, Plus, Trash2, Send, FileText, Eye, Star } from 'lucide-react';
 import { router } from '@inertiajs/react';
 import CreateRequestModal from '../../Components/company/CreateRequestModal';
 import DeleteConfirmationModal from '../../Components/shared/DeleteConfirmationModal';
@@ -345,6 +345,16 @@ export default function MyRequestsPage({
                                                                     </button>
                                                                 ) : (
                                                                     <span className="font-semibold text-[#28251d]">{proposal.freelancerName}</span>
+                                                                )}
+                                                                {proposal.freelancerRatingsCount > 0 ? (
+                                                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                                                                        <Star size={10} className="fill-amber-500 text-amber-500" />
+                                                                        <span>{proposal.freelancerRatingAverage}</span>
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-[10px] text-slate-400 font-medium bg-slate-100 px-1.5 py-0.5 rounded">
+                                                                        جديد
+                                                                    </span>
                                                                 )}
                                                                 <span>·</span>
                                                                 <span className="font-bold text-slate-800">{Number(proposal.price || 0).toLocaleString('ar-YE')} ر.ي</span>

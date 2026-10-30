@@ -14,13 +14,24 @@ import {
     Link as LinkIcon,
     FileCheck2,
     Scale,
+    Star,
 } from 'lucide-react';
 import DisputeModal from '../../Components/shared/DisputeModal';
 import DisputeBanner from '../../Components/shared/DisputeBanner';
+import ProjectRatingModal from '../../Components/shared/ProjectRatingModal';
 
 export default function ProjectWorkspace({ project, onBack }) {
     const [revisionModal, setRevisionModal] = useState({ isOpen: false, deliverableId: null });
     const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
+    const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+    const [hasDismissedRatingPrompt, setHasDismissedRatingPrompt] = useState(false);
+
+    useEffect(() => {
+        if (project?.status === 'completed' && (project.rating === null || project.rating === undefined) && !hasDismissedRatingPrompt) {
+            const timer = setTimeout(() => setIsRatingModalOpen(true), 600);
+            return () => clearTimeout(timer);
+        }
+    }, [project?.status, project?.rating, hasDismissedRatingPrompt]);
 
     const disputes = project.disputes || [];
     const activeDispute = project.active_dispute || disputes.find(d => ['open', 'under_review'].includes(d.status));
@@ -122,6 +133,33 @@ export default function ProjectWorkspace({ project, onBack }) {
                 onOpenDisputeModal={() => setIsDisputeModalOpen(true)}
             />
 
+            {/* Rating Prompt Banner for Completed Projects */}
+            {project.status === 'completed' && !project.rating && (
+                <div className="bg-gradient-to-l from-amber-500/10 via-amber-50 to-white border border-amber-200/90 rounded-2xl p-4 sm:p-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+                    <div className="flex items-start sm:items-center gap-3.5">
+                        <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 shadow-2xs">
+                            <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
+                        </div>
+                        <div>
+                            <h4 className="text-sm font-bold text-slate-800">
+                                تم إكمال المشروع واعتماد كافة التسليمات بنجاح!
+                            </h4>
+                            <p className="text-xs text-slate-600 mt-0.5 font-medium">
+                                يرجى تقييم أداء الخبير ({project.freelancer_name || 'الخبير'}) لدعم ملفه ومساعدة رواد الأعمال في اختياره.
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setIsRatingModalOpen(true)}
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs sm:text-sm shadow-xs transition-all cursor-pointer shrink-0"
+                    >
+                        <Star size={15} className="fill-white" />
+                        <span>تقييم الخبير الآن</span>
+                    </button>
+                </div>
+            )}
+
             {/* Project Overview Card */}
             <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs mb-8 space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
@@ -134,6 +172,29 @@ export default function ProjectWorkspace({ project, onBack }) {
                                 <span className={`w-2 h-2 rounded-full ${statusDot}`}></span>
                                 {statusLabel}
                             </span>
+                            {project.rating ? (
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold">
+                                    <div className="flex items-center gap-0.5" dir="ltr">
+                                        {[1, 2, 3, 4, 5].map((s) => (
+                                            <Star
+                                                key={s}
+                                                size={13}
+                                                className={s <= project.rating ? 'text-amber-500 fill-amber-500' : 'text-slate-200 fill-slate-100'}
+                                            />
+                                        ))}
+                                    </div>
+                                    <span>تقييمك: {project.rating} / 5</span>
+                                </div>
+                            ) : project.status === 'completed' ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsRatingModalOpen(true)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-2xs transition-all cursor-pointer"
+                                >
+                                    <Star size={13} className="fill-white" />
+                                    <span>تقييم الخبير ★</span>
+                                </button>
+                            ) : null}
                         </div>
                         <h1 className="text-xl sm:text-2xl font-bold text-slate-800 leading-snug break-words">
                             {project.title}
@@ -466,6 +527,20 @@ export default function ProjectWorkspace({ project, onBack }) {
                 disputes={disputes}
                 userRole="client"
                 theme="company"
+            />
+
+            {/* Project Star Rating Modal */}
+            <ProjectRatingModal
+                isOpen={isRatingModalOpen}
+                onClose={() => {
+                    setIsRatingModalOpen(false);
+                    setHasDismissedRatingPrompt(true);
+                }}
+                project={project}
+                onSuccess={(newRating) => {
+                    project.rating = newRating;
+                    setIsRatingModalOpen(false);
+                }}
             />
         </div>
     );

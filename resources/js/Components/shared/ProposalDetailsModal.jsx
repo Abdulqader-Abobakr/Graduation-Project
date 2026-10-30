@@ -6,7 +6,8 @@ import {
   Clock,
   RotateCcw,
   Calendar,
-  Info
+  Info,
+  Star
 } from 'lucide-react';
 
 export default function ProposalDetailsModal({ proposal, onClose, onAccept, onChat, onDeny, onViewFreelancer, processing = false }) {
@@ -71,6 +72,13 @@ export default function ProposalDetailsModal({ proposal, onClose, onAccept, onCh
                     </button>
                   ) : (
                     <span className="text-sm font-bold text-slate-800">{proposal.freelancerName}</span>
+                  )}
+                  {proposal.freelancerRatingsCount > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                      <Star size={11} className="fill-amber-500 text-amber-500" />
+                      <span>{proposal.freelancerRatingAverage}</span>
+                      <span className="text-[10px] text-amber-600/80 font-normal">({proposal.freelancerRatingsCount} تقييم)</span>
+                    </span>
                   )}
                 </div>
               </div>

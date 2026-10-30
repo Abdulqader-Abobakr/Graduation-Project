@@ -32,6 +32,37 @@ class ProjectController extends Controller
     }
 
     /**
+     * Submit numeric star rating (1 to 5) for a completed project.
+     */
+    public function rate(Request $request, Project $project)
+    {
+        abort_unless((string) $project->client_id === (string) auth()->id(), 403, 'غير مصرح لك بتقييم هذا المشروع.');
+        abort_unless($project->status === 'completed', 400, 'لا يمكن تقييم المشروع قبل اكتماله.');
+        abort_if(!is_null($project->rating), 400, 'تم تقييم هذا المشروع مسبقاً.');
+
+        $validated = $request->validate([
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
+        ], [
+            'rating.required' => 'يرجى تحديد التقييم من 1 إلى 5 نجوم.',
+            'rating.integer'  => 'قيمة التقييم غير صالحة.',
+            'rating.min'      => 'أقل تقييم مسموح به هو نجمة واحدة.',
+            'rating.max'      => 'أعلى تقييم مسموح به هو 5 نجوم.',
+        ]);
+
+        $project->update([
+            'rating'   => (int) $validated['rating'],
+            'rated_at' => now(),
+        ]);
+
+        \Illuminate\Support\Facades\Cache::forget('company_explore_freelancers');
+        if ($project->freelancer_id) {
+            \Illuminate\Support\Facades\Cache::forget("freelancer_dashboard_stats_{$project->freelancer_id}");
+        }
+
+        return back()->with('success', 'تم تسجيل تقييمك للخبير بنجاح!');
+    }
+
+    /**
      * Review a deliverable (approve or request revision).
      */
     public function reviewDeliverable(Request $request, Project $project, Deliverable $deliverable)

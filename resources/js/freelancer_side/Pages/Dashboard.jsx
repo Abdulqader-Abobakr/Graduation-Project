@@ -7,6 +7,7 @@ import {
   Clock,
   TrendingUp,
   Award,
+  Star,
 } from 'lucide-react';
 
 const normalizeImageUrl = (url) => {
@@ -180,9 +181,9 @@ export default function Dashboard({
     },
     {
       label: 'التقييم العام',
-      value: statsData.rating ?? '5.0',
-      icon: <Award className="text-slate-700" size={24} />,
-      change: 'من 5.0'
+      value: (statsData.ratingsCount > 0 && statsData.rating) ? `${statsData.rating} / 5` : 'جديد',
+      icon: <Star className="text-amber-500 fill-amber-500" size={24} />,
+      change: (statsData.ratingsCount > 0) ? `(${statsData.ratingsCount} تقييم)` : 'لا توجد تقييمات بعد'
     },
     {
       label: 'نسبة الإنجاز',

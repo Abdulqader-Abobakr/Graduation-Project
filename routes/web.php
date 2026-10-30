@@ -77,6 +77,8 @@ Route::middleware(['auth', 'role:company'])->group(function () {
 
     Route::get('/company/projects/{project}', [\App\Http\Controllers\Company\ProjectController::class, 'show'])
         ->name('company.projects.show');
+    Route::post('/company/projects/{project}/rate', [\App\Http\Controllers\Company\ProjectController::class, 'rate'])
+        ->name('company.projects.rate');
     Route::post('/company/projects/{project}/deliverables/{deliverable}/review', [\App\Http\Controllers\Company\ProjectController::class, 'reviewDeliverable'])
         ->name('company.projects.deliverables.review');
     Route::get('/company/projects/{project}/deliverables/{deliverable}/download', [\App\Http\Controllers\Company\ProjectController::class, 'downloadDeliverable'])

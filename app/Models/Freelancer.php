@@ -53,4 +53,34 @@ class Freelancer extends Model
     {
         return $this->hasMany(WithdrawalRequest::class, 'freelancer_id', 'id');
     }
+
+    /**
+     * Projects assigned to this freelancer.
+     */
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class, 'freelancer_id', 'user_id');
+    }
+
+    /**
+     * Get the rating statistics for this freelancer.
+     *
+     * @return array{rating_average: float|null, ratings_count: int}
+     */
+    public function getRatingStats(): array
+    {
+        $stats = Project::where('freelancer_id', $this->user_id)
+            ->where('status', 'completed')
+            ->whereNotNull('rating')
+            ->selectRaw('COUNT(rating) as count, ROUND(AVG(rating), 1) as avg')
+            ->first();
+
+        $count = (int) ($stats->count ?? 0);
+        $avg = $count > 0 ? (float) $stats->avg : null;
+
+        return [
+            'rating_average' => $avg,
+            'ratings_count'  => $count,
+        ];
+    }
 }
