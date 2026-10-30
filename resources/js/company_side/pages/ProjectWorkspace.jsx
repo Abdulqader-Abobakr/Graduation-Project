@@ -327,14 +327,14 @@ export default function ProjectWorkspace({ project, onBack }) {
                                     </div>
                                 ) : (
                                     <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 text-xs font-medium">
-                                        لم يقم المستقل برفع ملفات أو روابط لهذه المرحلة حتى الآن.
+                                        لم يقم الخبير برفع ملفات أو روابط لهذه المرحلة حتى الآن.
                                     </div>
                                 )}
 
                                 {/* Freelancer Notes */}
                                 {deliverable.notes && (
                                     <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/70 text-xs sm:text-sm text-slate-700 space-y-1">
-                                        <span className="font-bold text-slate-900 block">شرح وملاحظات المستقل على التسليم:</span>
+                                        <span className="font-bold text-slate-900 block">شرح وملاحظات الخبير على التسليم:</span>
                                         <p className="leading-relaxed whitespace-pre-line text-slate-700">{deliverable.notes}</p>
                                     </div>
                                 )}
@@ -343,8 +343,8 @@ export default function ProjectWorkspace({ project, onBack }) {
                                 {deliverable.client_feedback && (
                                     <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs sm:text-sm text-amber-900 space-y-1">
                                         <strong className="flex items-center gap-2 font-bold text-amber-900">
-                                            <MessageSquare size={16} />
-                                            <span>ملاحظات التعديل المرسلة للمستقل:</span>
+                                             <MessageSquare size={16} />
+                                             <span>ملاحظات التعديل المرسلة للخبير:</span>
                                         </strong>
                                         <p className="leading-relaxed whitespace-pre-line text-amber-800">{deliverable.client_feedback}</p>
                                     </div>
@@ -390,7 +390,7 @@ export default function ProjectWorkspace({ project, onBack }) {
                                 {isRevisionRequested && (
                                     <div className="flex items-center gap-2 text-xs font-bold text-amber-800 bg-amber-50/60 p-3 rounded-xl border border-amber-100">
                                         <Clock size={16} className="text-amber-600" />
-                                        <span>بانتظار قيام المستقل برفع النسخة المعدلة بناءً على ملاحظاتك.</span>
+                                        <span>بانتظار قيام الخبير برفع النسخة المعدلة بناءً على ملاحظاتك.</span>
                                     </div>
                                 )}
                             </div>
@@ -401,8 +401,8 @@ export default function ProjectWorkspace({ project, onBack }) {
 
             {/* Revision Modal */}
             {revisionModal.isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl relative text-start">
+                <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 backdrop-blur-xs p-4">
+                    <div className="relative max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-4 shadow-2xl text-start sm:p-6">
                         <button
                             type="button"
                             onClick={() => setRevisionModal({ isOpen: false, deliverableId: null })}
@@ -413,7 +413,7 @@ export default function ProjectWorkspace({ project, onBack }) {
 
                         <h3 className="text-lg font-bold text-slate-800 mb-1">طلب تعديل على التسليم</h3>
                         <p className="text-xs sm:text-sm text-slate-500 mb-4">
-                            يرجى كتابة ملاحظاتك وتفاصيل التعديل المطلوبة بدقة لتصل إلى المستقل.
+                            يرجى كتابة ملاحظاتك وتفاصيل التعديل المطلوبة بدقة لتصل إلى الخبير.
                         </p>
 
                         <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs font-semibold text-amber-900 flex items-center justify-between mb-4">

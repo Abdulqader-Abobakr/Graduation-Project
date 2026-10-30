@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import ProposalDetailsModal from '../../Components/shared/ProposalDetailsModal';
+import DeleteConfirmationModal from '../../Components/shared/DeleteConfirmationModal';
 import ProposalFormModal from '../../Components/freelancer/ProposalFormModal';
 import CompanyProfileModal from '../../Components/freelancer/CompanyProfileModal';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
@@ -142,6 +143,7 @@ export default function Proposals({
   }, [proposalsList, activeFilter, search]);
   const [selectedProposal, setSelectedProposal] = useState(null);
   const [proposalActionId, setProposalActionId] = useState(null);
+  const [proposalToDelete, setProposalToDelete] = useState(null);
   const [activeProposalModal, setActiveProposalModal] = useState(null);
   const [selectedCompanyForProfile, setSelectedCompanyForProfile] = useState(null);
 
@@ -228,8 +230,13 @@ export default function Proposals({
   };
 
   const deleteProposal = (proposalId) => {
-    if (!window.confirm('هل أنت متأكد من حذف هذا العرض؟')) return;
+    setProposalToDelete(proposalId);
+  };
 
+  const confirmDeleteProposal = () => {
+    if (proposalToDelete === null) return;
+    const proposalId = proposalToDelete;
+    setProposalToDelete(null);
     setProposalActionId(proposalId);
     setProposalsList((prev) => prev.filter((item) => String(item.id) !== String(proposalId)));
     router.delete(`/freelancer/proposals/${proposalId}`, {
@@ -239,7 +246,7 @@ export default function Proposals({
   };
 
   return (
-    <div className="p-8 space-y-8" dir="rtl">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-8" dir="rtl">
       {/* SECTION 1: Page Header */}
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-slate-800 mb-2">العروض والطلبات المباشرة</h1>
@@ -343,6 +350,15 @@ export default function Proposals({
         company={selectedCompanyForProfile}
         companyId={selectedCompanyForProfile?.clientId}
         onClose={() => setSelectedCompanyForProfile(null)}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={proposalToDelete !== null}
+        title="حذف العرض؟"
+        description="سيتم حذف العرض الذي أرسلته نهائياً. هل تريد المتابعة؟"
+        isProcessing={proposalActionId === proposalToDelete}
+        onCancel={() => setProposalToDelete(null)}
+        onConfirm={confirmDeleteProposal}
       />
     </div>
   );

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, router, useForm } from '@inertiajs/react';
+import { ChevronDown, Search, Check } from 'lucide-react';
 import TermsAndPrivacyModal from '../../Components/shared/TermsAndPrivacyModal';
 
 // The 21 major Yemeni cities and governorates
@@ -25,6 +26,42 @@ const YEMEN_CITIES = [
     'ريمة',
     'المحويت',
     'سقطرى'
+];
+
+// 16 Enum values of project_category used as quick suggestions for freelancer specialties
+const PROJECT_CATEGORIES = [
+    'تطوير المتاجر الإلكترونية',
+    'تطوير المواقع التعريفية وصفحات الهبوط',
+    'تطوير تطبيقات الويب والأنظمة المخصصة',
+    'ربط البرمجيات وأتمتة الأعمال',
+    'تحسين أداء المواقع والأمان والصيانة التقنية',
+    'تصميم الهوية البصرية والشعارات',
+    'تصميم واجهات وتجربة المستخدم',
+    'تصميم التغليف وملصقات المنتجات',
+    'تصميم العروض الاستثمارية والملفات التعريفية',
+    'إدارة الحملات الإعلانية الممولة',
+    'إعداد الخطط والاستراتيجيات التسويقية',
+    'تحسين محركات البحث والظهور المحلي',
+    'كتابة المحتوى الإعلاني والبيعي',
+    'إدارة حسابات التواصل الاجتماعي وجدولة المحتوى',
+    'تصميم منشورات وإعلانات التواصل الاجتماعي',
+    'مونتاج الفيديوهات القصيرة والرسوم المتحركة'
+];
+
+// Popular sector suggestions for freelancer experienced_sectors
+const SECTOR_SUGGESTIONS = [
+    'التجارة الإلكترونية والتجزئة',
+    'التقنية والبرمجيات',
+    'الخدمات المالية والمصرفية',
+    'التعليم والتدريب',
+    'الرعاية الصحية والأدوية',
+    'المطاعم والمقاهي والأغذية',
+    'العقارات والإنشاءات',
+    'السياحة والضيافة والترفيه',
+    'الخدمات اللوجستية والشحن',
+    'الإعلام وصناعة المحتوى',
+    'المنظمات غير الربحية',
+    'الصناعة والإنتاج'
 ];
 
 // Step validation logic
@@ -64,8 +101,8 @@ const validateStep = (step, formData, accountType) => {
             const cleanPhone = rawPhone.replace(/[\s\-\(\)\+]/g, '').replace(/^00967|^967/, '');
             if (!rawPhone) {
                 errors.phone = 'رقم الهاتف مطلوب';
-            } else if (!/^7\d{8}$/.test(cleanPhone)) {
-                errors.phone = 'رقم الهاتف يجب أن يبدأ بـ 7 ويتكون من 9 أرقام (مثال: 771234567)';
+            } else if (!/^(77|71|73)\d{7}$/.test(cleanPhone)) {
+                errors.phone = 'رقم الهاتف يجب أن يبدأ بـ 77 أو 71 أو 73 ويتكون من 9 أرقام';
             }
 
             if (!formData.idDocument) {
@@ -76,40 +113,90 @@ const validateStep = (step, formData, accountType) => {
             break;
 
         case 2:
-            if (!formData.sector) {
-                errors.sector = 'يرجى اختيار المجال / القطاع';
-            } else if (formData.sector === 'custom' || formData.sector === 'اكتب يدويًا') {
-                const custom = (formData.customSector || '').trim();
-                if (!custom) {
-                    errors.customSector = 'يرجى إدخال المجال يدوياً';
-                } else if (custom.length < 2) {
-                    errors.customSector = 'المجال يجب أن يتكون من حرفين على الأقل';
-                } else if (!/^[\u0600-\u06FF0-9\s\-–]+$/.test(custom)) {
-                    errors.customSector = 'المجال يجب أن يحتوي على أحرف عربية فقط';
+            if (accountType === 'freelancer') {
+                const jobTitle = (formData.job_title || '').trim();
+                if (!jobTitle) {
+                    errors.job_title = 'المسمى الوظيفي مطلوب';
+                } else if (jobTitle.length < 2) {
+                    errors.job_title = 'المسمى الوظيفي يجب أن يتكون من حرفين على الأقل';
+                } else if (!/^[\u0600-\u06FFa-zA-Z0-9\s\.\,\-\/\&]+$/.test(jobTitle)) {
+                    errors.job_title = 'المسمى الوظيفي يحتوي على رموز غير مسموح بها';
                 }
-            }
 
-            const city = (formData.city || '').trim();
-            if (!city) {
-                errors.city = 'يرجى اختيار المدينة من القائمة';
+                const city = (formData.city || '').trim();
+                if (!city) {
+                    errors.city = 'يرجى اختيار المدينة من القائمة';
+                }
+
+                const bio = (formData.bio || '').trim();
+                if (bio && bio.length > 1000) {
+                    errors.bio = 'النبذة التعريفية يجب ألا تتجاوز 1000 حرف';
+                }
+            } else {
+                if (!formData.sector) {
+                    errors.sector = 'يرجى اختيار المجال / القطاع';
+                } else if (formData.sector === 'custom' || formData.sector === 'اكتب يدويًا') {
+                    const custom = (formData.customSector || '').trim();
+                    if (!custom) {
+                        errors.customSector = 'يرجى إدخال المجال يدوياً';
+                    } else if (custom.length < 2) {
+                        errors.customSector = 'المجال يجب أن يتكون من حرفين على الأقل';
+                    } else if (!/^[\u0600-\u06FF0-9\s\-–]+$/.test(custom)) {
+                        errors.customSector = 'المجال يجب أن يحتوي على أحرف عربية فقط';
+                    }
+                }
+
+                const city = (formData.city || '').trim();
+                if (!city) {
+                    errors.city = 'يرجى اختيار المدينة من القائمة';
+                }
             }
             break;
 
         case 3:
-            const password = formData.password || '';
-            const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
-            if (!password) {
-                errors.password = 'كلمة المرور مطلوبة';
-            } else if (password.length < 8) {
-                errors.password = 'كلمة المرور يجب أن تكون 8 خانات على الأقل';
-            } else if (!passwordRegex.test(password)) {
-                errors.password = 'كلمة المرور يجب أن تتضمن حرفاً كبيراً، وحرفاً صغيراً، ورقماً، ورمزاً خاصاً (!@#$...)';
-            }
+            if (accountType === 'freelancer') {
+                if (!formData.marketing_specialties || formData.marketing_specialties.length === 0) {
+                    errors.marketing_specialties = 'يرجى اختيار أو إضافة مهارة/خدمة واحدة على الأقل';
+                }
+                if (!formData.experienced_sectors || formData.experienced_sectors.length === 0) {
+                    errors.experienced_sectors = 'يرجى اختيار أو إضافة مجال أو قطاع خبرة واحد على الأقل';
+                }
+            } else {
+                const password = formData.password || '';
+                const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+                if (!password) {
+                    errors.password = 'كلمة المرور مطلوبة';
+                } else if (password.length < 8) {
+                    errors.password = 'كلمة المرور يجب أن تكون 8 خانات على الأقل';
+                } else if (!passwordRegex.test(password)) {
+                    errors.password = 'كلمة المرور يجب أن تتضمن حرفاً كبيراً، وحرفاً صغيراً، ورقماً، ورمزاً خاصاً (!@#$...)';
+                }
 
-            if (!formData.password_confirmation) {
-                errors.password_confirmation = 'يرجى تأكيد كلمة المرور';
-            } else if (password !== formData.password_confirmation) {
-                errors.password_confirmation = 'كلمتا المرور غير متطابقتين';
+                if (!formData.password_confirmation) {
+                    errors.password_confirmation = 'يرجى تأكيد كلمة المرور';
+                } else if (password !== formData.password_confirmation) {
+                    errors.password_confirmation = 'كلمتا المرور غير متطابقتين';
+                }
+            }
+            break;
+
+        case 4:
+            if (accountType === 'freelancer') {
+                const password = formData.password || '';
+                const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+                if (!password) {
+                    errors.password = 'كلمة المرور مطلوبة';
+                } else if (password.length < 8) {
+                    errors.password = 'كلمة المرور يجب أن تكون 8 خانات على الأقل';
+                } else if (!passwordRegex.test(password)) {
+                    errors.password = 'كلمة المرور يجب أن تتضمن حرفاً كبيراً، وحرفاً صغيراً، ورقماً، ورمزاً خاصاً (!@#$...)';
+                }
+
+                if (!formData.password_confirmation) {
+                    errors.password_confirmation = 'يرجى تأكيد كلمة المرور';
+                } else if (password !== formData.password_confirmation) {
+                    errors.password_confirmation = 'كلمتا المرور غير متطابقتين';
+                }
             }
             break;
     }
@@ -143,13 +230,13 @@ const ACCOUNT_TYPES = {
     }
 };
 
-// Form field configurations without country
+// Form field configurations
 const FORM_FIELDS = {
     company: {
         1: [
             { name: 'companyName', label: 'اسم رائد الأعمال / المشروع أو الشركة', type: 'text', placeholder: 'أدخل اسمك أو اسم مشروعك/شركتك (باللغة العربية)', required: true },
             { name: 'email', label: 'البريد الإلكتروني', type: 'email', placeholder: 'example@email.com', required: true },
-            { name: 'phone', label: 'رقم الهاتف', type: 'tel', placeholder: '7xxxxxxxx', required: true },
+            { name: 'phone', label: 'رقم الهاتف', type: 'tel', placeholder: 'أدخل رقم الهاتف', required: true },
             { name: 'idDocument', label: 'صورة السجل التجاري أو البطاقة الشخصية', type: 'file', required: true }
         ],
         2: [
@@ -190,27 +277,11 @@ const FORM_FIELDS = {
         1: [
             { name: 'name', label: 'اكتب اسمك كامل', type: 'text', placeholder: 'أدخل اسمك الثلاثي (باللغة العربية)', required: true },
             { name: 'email', label: 'البريد الإلكتروني', type: 'email', placeholder: 'example@email.com', required: true },
-            { name: 'phone', label: 'رقم الهاتف', type: 'tel', placeholder: '7xxxxxxxx', required: true },
+            { name: 'phone', label: 'رقم الهاتف', type: 'tel', placeholder: 'أدخل رقم الهاتف', required: true },
             { name: 'idDocument', label: 'صورة الهوية الوطنية / جواز السفر', type: 'file', required: true }
         ],
         2: [
-            {
-                name: 'sector',
-                label: 'مجال الخبرة الذي تقدّم فيه خدماتك كخبير',
-                type: 'select',
-                placeholder: 'اختر المجال',
-                required: true,
-                options: [
-                    'خدمات التسويق الرقمي',
-                    'التصميم الجرافيكي والهوية البصرية',
-                    'تطوير المواقع وتطبيقات الجوال',
-                    'إدارة الحملات ووسائل التواصل الاجتماعي',
-                    'الاستشارات التجارية ودراسات الجدوى',
-                    'أبحاث السوق وتحليل المنافسين',
-                    'صناعة المحتوى والترجمة',
-                    'اكتب يدويًا'
-                ]
-            },
+            { name: 'job_title', label: 'المسمى الوظيفي', type: 'text', placeholder: 'مثال: مصمم واجهات، مطور برمجيات، مسوق رقمي', required: true },
             {
                 name: 'city',
                 label: 'المدينة',
@@ -218,20 +289,233 @@ const FORM_FIELDS = {
                 placeholder: 'اختر المدينة',
                 required: true,
                 options: YEMEN_CITIES
-            }
+            },
+            { name: 'bio', label: 'نبذة تعريفية موجزة', type: 'textarea', placeholder: 'نبذة موجزة عن خبراتك المهنية والخدمات التي تقدمها...', required: false, colSpan: 2 }
         ],
-        3: [
+        // Step 3 is rendered specifically with the 2-column TagSelector for Specialties and Sectors
+        4: [
             { name: 'password', label: 'كلمة المرور', type: 'password', placeholder: 'أدخل كلمة مرور قوية', required: true },
             { name: 'password_confirmation', label: 'تأكيد كلمة المرور', type: 'password', placeholder: 'أعد إدخال كلمة المرور', required: true }
         ]
     }
 };
 
+// Custom Smooth Combobox Component (Smart up/down position, accessible, searchable, effortless click)
+const CustomCombobox = ({ field, value, onChange, error }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [openUpward, setOpenUpward] = useState(false);
+    const containerRef = useRef(null);
+    const searchInputRef = useRef(null);
+
+    const options = field.options || [];
+
+    // Calculate whether dropdown should open upwards or downwards based on viewport space
+    const checkPosition = () => {
+        if (containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            // If less than 280px below, and there is space above, open upward
+            const shouldOpenUp = spaceBelow < 280 && rect.top > 200;
+            setOpenUpward(shouldOpenUp);
+        }
+    };
+
+    const toggleOpen = () => {
+        checkPosition();
+        setIsOpen((prev) => !prev);
+    };
+
+    useEffect(() => {
+        if (isOpen) {
+            checkPosition();
+            const handleScroll = () => checkPosition();
+            window.addEventListener('resize', handleScroll);
+            window.addEventListener('scroll', handleScroll, true);
+            return () => {
+                window.removeEventListener('resize', handleScroll);
+                window.removeEventListener('scroll', handleScroll, true);
+            };
+        }
+    }, [isOpen]);
+
+    // Filter options based on search query
+    const filteredOptions = options.filter((opt) =>
+        opt.toLowerCase().includes(searchQuery.trim().toLowerCase())
+    );
+
+    // Close on click outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (containerRef.current && !containerRef.current.contains(e.target)) {
+                setIsOpen(false);
+                setSearchQuery('');
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isOpen]);
+
+    // Focus search input when dropdown opens
+    useEffect(() => {
+        if (isOpen && options.length > 7 && searchInputRef.current) {
+            setTimeout(() => {
+                searchInputRef.current?.focus();
+            }, 50);
+        }
+    }, [isOpen, options.length]);
+
+    const handleSelect = (option) => {
+        const finalVal = option === 'اكتب يدويًا' ? 'custom' : option;
+        onChange({
+            target: {
+                name: field.name,
+                value: finalVal,
+            },
+        });
+        setIsOpen(false);
+        setSearchQuery('');
+    };
+
+    // Determine display label
+    let displayLabel = field.placeholder || 'اختر من القائمة';
+    if (value) {
+        if (value === 'custom') {
+            displayLabel = 'اكتب يدويًا';
+        } else {
+            displayLabel = value;
+        }
+    }
+
+    const hasValue = Boolean(value);
+
+    return (
+        <div ref={containerRef} className={`relative ${isOpen ? 'z-40' : 'z-10'}`}>
+            <label className="block text-xs font-medium text-slate-700 mb-1 text-right">
+                {field.label}
+                {field.required && <span className="text-red-500 mr-1">*</span>}
+            </label>
+
+            {/* Trigger Button - clicking anywhere opens immediately */}
+            <div
+                role="button"
+                tabIndex={0}
+                onClick={toggleOpen}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleOpen();
+                    }
+                }}
+                className={`w-full rounded-xl border ${
+                    error ? 'border-red-400 bg-red-50/20' : 'border-slate-200 bg-slate-50'
+                } px-4 py-3 text-right text-sm text-slate-900 shadow-sm outline-none transition-all flex items-center justify-between cursor-pointer select-none ${
+                    isOpen ? 'border-primary ring-2 ring-primary-light bg-white' : 'hover:border-slate-300'
+                }`}
+            >
+                <ChevronDown
+                    className={`h-4 w-4 text-slate-400 transition-transform duration-200 shrink-0 ${
+                        isOpen ? 'rotate-180 text-primary' : ''
+                    }`}
+                />
+                <span className={`truncate text-right flex-1 ${hasValue ? 'text-slate-900 font-semibold' : 'text-slate-400 font-normal'}`}>
+                    {displayLabel}
+                </span>
+            </div>
+
+            {/* Dropdown Menu (Smart Up/Down Positioning) */}
+            {isOpen && (
+                <div
+                    className={`absolute z-[80] w-full rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden py-1.5 transition-all duration-150 ${
+                        openUpward ? 'bottom-full mb-1.5 origin-bottom' : 'top-full mt-1.5 origin-top'
+                    }`}
+                >
+                    {/* Search Bar for long lists (e.g. cities) */}
+                    {options.length > 7 && (
+                        <div className="p-2 border-b border-slate-100">
+                            <div className="relative">
+                                <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                                <input
+                                    ref={searchInputRef}
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="بحث سريع في الخيارات..."
+                                    className="w-full rounded-lg border border-slate-200 bg-slate-50 pr-8 pl-7 py-1.5 text-xs text-right text-slate-900 outline-none focus:border-primary focus:bg-white transition-colors"
+                                    onClick={(e) => e.stopPropagation()}
+                                />
+                                {searchQuery && (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSearchQuery('');
+                                            searchInputRef.current?.focus();
+                                        }}
+                                        className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+                                    >
+                                        ×
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Options List with High Contrast and Clear Padding */}
+                    <div className="max-h-56 overflow-y-auto p-1.5 space-y-1">
+                        {filteredOptions.length > 0 ? (
+                            filteredOptions.map((opt) => {
+                                const optVal = opt === 'اكتب يدويًا' ? 'custom' : opt;
+                                const isSelected = value === optVal || (value === 'custom' && opt === 'اكتب يدويًا');
+
+                                return (
+                                    <div
+                                        key={opt}
+                                        onClick={() => handleSelect(opt)}
+                                        className={`w-full px-3.5 py-2.5 text-right text-xs sm:text-sm rounded-xl flex items-center justify-between cursor-pointer transition-all ${
+                                            isSelected
+                                                ? 'bg-primary text-white font-bold shadow-2xs'
+                                                : 'text-slate-800 hover:bg-slate-100 font-medium'
+                                        }`}
+                                    >
+                                        {isSelected ? (
+                                            <Check className="h-4 w-4 text-white shrink-0 stroke-[2.5]" />
+                                        ) : (
+                                            <span className="w-4 h-4 shrink-0" />
+                                        )}
+                                        <span className="flex-1 truncate">{opt}</span>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div className="py-4 text-center text-xs text-slate-400 font-medium">
+                                لا توجد نتائج مطابقة
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {error && (
+                <p className="mt-1 text-xs text-red-500 text-right flex items-center justify-end gap-1">
+                    <span>{error}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </p>
+            )}
+        </div>
+    );
+};
+
 // Form input component
 const FormInput = ({ field, value, onChange, error }) => {
     const [showPassword, setShowPassword] = useState(false);
-
-
 
     const commonProps = {
         name: field.name,
@@ -243,24 +527,24 @@ const FormInput = ({ field, value, onChange, error }) => {
     };
 
     if (field.type === 'select') {
-        const options = field.options || [];
+        return <CustomCombobox field={field} value={value} onChange={onChange} error={error} />;
+    }
+
+    if (field.type === 'textarea') {
         return (
-            <div>
+            <div className={field.colSpan === 2 ? 'md:col-span-2' : ''}>
                 <label className="block text-xs font-medium text-slate-700 mb-1 text-right">
                     {field.label}
                     {field.required && <span className="text-red-500 mr-1">*</span>}
                 </label>
-                <select
-                    {...commonProps}
-                    className={`w-full rounded-xl border ${error ? 'border-red-400 bg-red-50/20' : 'border-slate-200 bg-slate-50'} px-4 py-3 text-right text-sm text-slate-900 shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary-light transition-colors cursor-pointer`}
-                >
-                    <option value="">{field.placeholder || 'اختر من القائمة'}</option>
-                    {options.map((option) => (
-                        <option key={option} value={option === 'اكتب يدويًا' ? 'custom' : option}>
-                            {option}
-                        </option>
-                    ))}
-                </select>
+                <textarea
+                    name={field.name}
+                    value={value || ''}
+                    onChange={onChange}
+                    placeholder={field.placeholder}
+                    rows={field.rows || 3}
+                    className={`w-full rounded-xl border ${error ? 'border-red-400 bg-red-50/20' : 'border-slate-200 bg-slate-50'} px-4 py-3 text-right text-sm text-slate-900 shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary-light transition-colors resize-none`}
+                />
                 {error && (
                     <p className="mt-1 text-xs text-red-500 text-right flex items-center justify-end gap-1">
                         <span>{error}</span>
@@ -282,6 +566,7 @@ const FormInput = ({ field, value, onChange, error }) => {
                 </label>
                 <div className="relative">
                     <input
+                        key={value ? 'has-file' : 'no-file'}
                         name={field.name}
                         type="file"
                         accept="image/jpeg,image/png,image/webp,application/pdf"
@@ -325,7 +610,7 @@ const FormInput = ({ field, value, onChange, error }) => {
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 hover:text-slate-600 transition-colors"
+                        className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
                         tabIndex={-1}
                     >
                         {showPassword ? (
@@ -418,6 +703,9 @@ function Register() {
     const [showTermsModal, setShowTermsModal] = useState(true);
     const [requireDecision, setRequireDecision] = useState(true);
 
+    const [customSpecialtyInput, setCustomSpecialtyInput] = useState('');
+    const [customSectorInput, setCustomSectorInput] = useState('');
+
     const handleAcceptTerms = () => {
         setHasAgreedToTerms(true);
         setShowTermsModal(false);
@@ -436,6 +724,10 @@ function Register() {
         customSector: '',
         idDocument: null,
         city: '',
+        job_title: '',
+        bio: '',
+        marketing_specialties: [],
+        experienced_sectors: [],
         password: '',
         password_confirmation: '',
         role: '',
@@ -443,11 +735,62 @@ function Register() {
 
     const [errors, setErrors] = useState({});
 
-    const stepData = [
-        { label: 'الحساب', description: 'أدخل بياناتك الأساسية' },
-        { label: 'المعلومات', description: 'أضف معلومات النشاط والموقع' },
-        { label: 'كلمة المرور', description: 'أنشئ كلمة مرور قوية' },
-    ];
+    // Reset all form inputs and errors completely when switching account type
+    const resetForm = (newRole = '') => {
+        setData({
+            companyName: '',
+            name: '',
+            email: '',
+            phone: '',
+            sector: '',
+            customSector: '',
+            idDocument: null,
+            city: '',
+            job_title: '',
+            bio: '',
+            marketing_specialties: [],
+            experienced_sectors: [],
+            password: '',
+            password_confirmation: '',
+            role: newRole,
+        });
+        setErrors({});
+        clearErrors();
+        setCustomSpecialtyInput('');
+        setCustomSectorInput('');
+    };
+
+    const handleChangeAccountType = () => {
+        resetForm('');
+        setAccountType('');
+        setStep(0);
+    };
+
+    const handleSelectAccountType = (typeId) => {
+        if (!hasAgreedToTerms) {
+            setRequireDecision(true);
+            setShowTermsModal(true);
+            return;
+        }
+        resetForm(typeId);
+        setAccountType(typeId);
+        setStep(1);
+    };
+
+    const maxSteps = accountType === 'freelancer' ? 4 : 3;
+
+    const stepData = accountType === 'freelancer'
+        ? [
+            { label: 'الحساب', description: 'أدخل بياناتك الأساسية' },
+            { label: 'المعلومات', description: 'أضف المسمى الوظيفي والموقع' },
+            { label: 'المهارات والخدمات', description: 'حدد مجالات خبرتك وتخصصاتك' },
+            { label: 'كلمة المرور', description: 'أنشئ كلمة مرور قوية' },
+        ]
+        : [
+            { label: 'الحساب', description: 'أدخل بياناتك الأساسية' },
+            { label: 'المعلومات', description: 'أضف معلومات النشاط والموقع' },
+            { label: 'كلمة المرور', description: 'أنشئ كلمة مرور قوية' },
+        ];
 
     const handleChange = (e) => {
         const { name, type, value, files } = e.target;
@@ -457,6 +800,68 @@ function Register() {
         if (errors[name]) {
             setErrors((prev) => ({ ...prev, [name]: '' }));
         }
+    };
+
+    const handleToggleSpecialty = (item) => {
+        const current = data.marketing_specialties || [];
+        const next = current.includes(item)
+            ? current.filter((s) => s !== item)
+            : [...current, item];
+        setData('marketing_specialties', next);
+        clearErrors('marketing_specialties');
+        if (errors.marketing_specialties) {
+            setErrors((prev) => ({ ...prev, marketing_specialties: '' }));
+        }
+    };
+
+    const handleAddCustomSpecialty = (val) => {
+        const trimmed = (val || '').trim();
+        if (!trimmed) return;
+        const current = data.marketing_specialties || [];
+        if (!current.includes(trimmed)) {
+            setData('marketing_specialties', [...current, trimmed]);
+            clearErrors('marketing_specialties');
+            if (errors.marketing_specialties) {
+                setErrors((prev) => ({ ...prev, marketing_specialties: '' }));
+            }
+        }
+        setCustomSpecialtyInput('');
+    };
+
+    const handleRemoveSpecialty = (item) => {
+        const current = data.marketing_specialties || [];
+        setData('marketing_specialties', current.filter((s) => s !== item));
+    };
+
+    const handleToggleSector = (item) => {
+        const current = data.experienced_sectors || [];
+        const next = current.includes(item)
+            ? current.filter((s) => s !== item)
+            : [...current, item];
+        setData('experienced_sectors', next);
+        clearErrors('experienced_sectors');
+        if (errors.experienced_sectors) {
+            setErrors((prev) => ({ ...prev, experienced_sectors: '' }));
+        }
+    };
+
+    const handleAddCustomSector = (val) => {
+        const trimmed = (val || '').trim();
+        if (!trimmed) return;
+        const current = data.experienced_sectors || [];
+        if (!current.includes(trimmed)) {
+            setData('experienced_sectors', [...current, trimmed]);
+            clearErrors('experienced_sectors');
+            if (errors.experienced_sectors) {
+                setErrors((prev) => ({ ...prev, experienced_sectors: '' }));
+            }
+        }
+        setCustomSectorInput('');
+    };
+
+    const handleRemoveSector = (item) => {
+        const current = data.experienced_sectors || [];
+        setData('experienced_sectors', current.filter((s) => s !== item));
     };
 
     const handleNext = (e) => {
@@ -476,28 +881,41 @@ function Register() {
             return;
         }
 
-        if (step < 3) {
+        if (step < maxSteps) {
             setStep(step + 1);
             return;
         }
 
         post('/register', {
             forceFormData: true,
-            transform: (currentData) => ({
-                ...currentData,
-                phone: (currentData.phone || '').toString().trim().replace(/[\s\-\(\)\+]/g, '').replace(/^00967|^967/, ''),
-                sector: (currentData.sector === 'custom' || currentData.sector === 'اكتب يدويًا') ? (currentData.customSector || '').trim() : currentData.sector,
-            }),
+            transform: (currentData) => {
+                const isFreelancer = accountType === 'freelancer';
+                const sectorVal = isFreelancer
+                    ? (currentData.marketing_specialties?.[0] || currentData.job_title || 'خدمات ريادة الأعمال')
+                    : ((currentData.sector === 'custom' || currentData.sector === 'اكتب يدويًا')
+                        ? (currentData.customSector || '').trim()
+                        : currentData.sector);
+
+                return {
+                    ...currentData,
+                    phone: (currentData.phone || '').toString().trim().replace(/[\s\-\(\)\+]/g, '').replace(/^00967|^967/, ''),
+                    sector: sectorVal,
+                    marketing_specialties: currentData.marketing_specialties || [],
+                    experienced_sectors: currentData.experienced_sectors || [],
+                };
+            },
             onError: (formErrors) => {
                 setErrors(formErrors);
 
                 const fieldNames = Object.keys(formErrors);
                 if (fieldNames.some((field) => ['name', 'companyName', 'email', 'phone', 'idDocument'].includes(field))) {
                     setStep(1);
-                } else if (fieldNames.some((field) => ['sector', 'customSector', 'city'].includes(field))) {
+                } else if (fieldNames.some((field) => ['job_title', 'bio', 'sector', 'customSector', 'city'].includes(field))) {
                     setStep(2);
-                } else {
+                } else if (fieldNames.some((field) => ['marketing_specialties', 'experienced_sectors'].includes(field))) {
                     setStep(3);
+                } else {
+                    setStep(maxSteps);
                 }
             },
         });
@@ -530,16 +948,7 @@ function Register() {
                                     <button
                                         key={type.id}
                                         type="button"
-                                        onClick={() => {
-                                            if (!hasAgreedToTerms) {
-                                                setRequireDecision(true);
-                                                setShowTermsModal(true);
-                                                return;
-                                            }
-                                            setAccountType(type.id);
-                                            setData('role', type.id);
-                                            setStep(1);
-                                        }}
+                                        onClick={() => handleSelectAccountType(type.id)}
                                         className="flex flex-col items-start gap-2 rounded-xl border-2 border-slate-200 bg-slate-50 p-4 text-right shadow hover:shadow-lg transition-all hover:scale-[1.02] hover:border-primary group cursor-pointer"
                                     >
                                         <div className="flex items-center gap-4 w-full">
@@ -600,46 +1009,235 @@ function Register() {
                     </div>
 
                     <form onSubmit={handleNext} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {currentFields.map((field) => {
-                            return (
-                                <div key={field.name} className="md:col-span-1">
-                                    <FormInput
-                                        field={field}
-                                        value={data[field.name]}
-                                        onChange={handleChange}
-                                        error={errors[field.name] || serverErrors[field.name]}
-                                    />
-
-                                    {showCustomSectorInput && field.name === 'sector' && (
-                                        <div className="mt-2.5">
-                                            <label className="block text-xs font-medium text-slate-700 mb-1 text-right">
-                                                أدخل المجال يدوياً
-                                                <span className="text-red-500 mr-1">*</span>
+                        {/* If Freelancer Step 3: Render Specialties and Sectors side-by-side */}
+                        {accountType === 'freelancer' && step === 3 ? (
+                            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Column 1: Specialties with 16 enum values */}
+                                <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+                                    <div className="text-right">
+                                        <div className="flex items-center justify-between">
+                                            <label className="block text-xs font-semibold text-slate-800">
+                                                المهارات والخدمات المقدمة <span className="text-red-500">*</span>
                                             </label>
-                                            <input
-                                                type="text"
-                                                name="customSector"
-                                                value={data.customSector || ''}
-                                                onChange={handleChange}
-                                                placeholder="اكتب المجال باللغة العربية"
-                                                className={`w-full rounded-xl border ${errors.customSector || serverErrors.customSector ? 'border-red-400 bg-red-50/20' : 'border-slate-200 bg-slate-50'} px-4 py-3 text-right text-sm text-slate-900 shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary-light transition-colors`}
-                                            />
-                                            {(errors.customSector || serverErrors.customSector) && (
-                                                <p className="mt-1 text-xs text-red-500 text-right flex items-center justify-end gap-1">
-                                                    <span>{errors.customSector || serverErrors.customSector}</span>
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                </p>
+                                            {data.marketing_specialties?.length > 0 && (
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                                                    محدد ({data.marketing_specialties.length})
+                                                </span>
                                             )}
                                         </div>
-                                    )}
+                                        <p className="text-[11px] text-slate-400 mt-0.5">اختر تخصصاتك من القائمة أو أضف تخصصك يدوياً:</p>
+                                    </div>
+
+                                    {/* Suggestion Chips */}
+                                    <div className="flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto p-0.5">
+                                        {PROJECT_CATEGORIES.map((item) => {
+                                            const isSelected = data.marketing_specialties?.includes(item);
+                                            return (
+                                                <button
+                                                    key={item}
+                                                    type="button"
+                                                    onClick={() => handleToggleSpecialty(item)}
+                                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                                                        isSelected
+                                                            ? 'bg-primary text-white shadow-sm font-semibold'
+                                                            : 'bg-white text-slate-700 border border-slate-200 hover:border-primary/50 hover:bg-primary/5'
+                                                    }`}
+                                                >
+                                                    {isSelected ? '✓ ' : '+ '}
+                                                    {item}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Custom Input */}
+                                    <div className="pt-2 border-t border-slate-200/80">
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleAddCustomSpecialty(customSpecialtyInput)}
+                                                className="rounded-xl bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary hover:text-white transition-colors cursor-pointer shrink-0"
+                                            >
+                                                + إضافة
+                                            </button>
+                                            <input
+                                                type="text"
+                                                value={customSpecialtyInput}
+                                                onChange={(e) => setCustomSpecialtyInput(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        handleAddCustomSpecialty(customSpecialtyInput);
+                                                    }
+                                                }}
+                                                placeholder="اكتب خدمة أو مهارة مخصصة واضغط Enter..."
+                                                className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-right text-xs text-slate-900 shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary-light transition-colors"
+                                            />
+                                        </div>
+                                        {/* Custom tags list */}
+                                        {data.marketing_specialties?.filter((s) => !PROJECT_CATEGORIES.includes(s)).length > 0 && (
+                                            <div className="flex flex-wrap gap-1 mt-2">
+                                                {data.marketing_specialties
+                                                    ?.filter((s) => !PROJECT_CATEGORIES.includes(s))
+                                                    .map((tag) => (
+                                                        <span
+                                                            key={tag}
+                                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-primary/10 text-primary border border-primary/20"
+                                                        >
+                                                            <span>{tag}</span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleRemoveSpecialty(tag)}
+                                                                className="text-primary hover:text-red-500 transition-colors cursor-pointer"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        </span>
+                                                    ))}
+                                            </div>
+                                        )}
+                                        {(errors.marketing_specialties || serverErrors.marketing_specialties) && (
+                                            <p className="mt-1 text-xs text-red-500 text-right">
+                                                {errors.marketing_specialties || serverErrors.marketing_specialties}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
-                            );
-                        })}
+
+                                {/* Column 2: Sectors */}
+                                <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+                                    <div className="text-right">
+                                        <div className="flex items-center justify-between">
+                                            <label className="block text-xs font-semibold text-slate-800">
+                                                مجالات وقطاعات ريادة الأعمال <span className="text-red-500">*</span>
+                                            </label>
+                                            {data.experienced_sectors?.length > 0 && (
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                                                    محدد ({data.experienced_sectors.length})
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-[11px] text-slate-400 mt-0.5">القطاعات التي تمتلك خبرة سابقة في خدمتها:</p>
+                                    </div>
+
+                                    {/* Sector Suggestion Chips */}
+                                    <div className="flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto p-0.5">
+                                        {SECTOR_SUGGESTIONS.map((item) => {
+                                            const isSelected = data.experienced_sectors?.includes(item);
+                                            return (
+                                                <button
+                                                    key={item}
+                                                    type="button"
+                                                    onClick={() => handleToggleSector(item)}
+                                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                                                        isSelected
+                                                            ? 'bg-primary text-white shadow-sm font-semibold'
+                                                            : 'bg-white text-slate-700 border border-slate-200 hover:border-primary/50 hover:bg-primary/5'
+                                                    }`}
+                                                >
+                                                    {isSelected ? '✓ ' : '+ '}
+                                                    {item}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Custom Input */}
+                                    <div className="pt-2 border-t border-slate-200/80">
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleAddCustomSector(customSectorInput)}
+                                                className="rounded-xl bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary hover:text-white transition-colors cursor-pointer shrink-0"
+                                            >
+                                                + إضافة
+                                            </button>
+                                            <input
+                                                type="text"
+                                                value={customSectorInput}
+                                                onChange={(e) => setCustomSectorInput(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        handleAddCustomSector(customSectorInput);
+                                                    }
+                                                }}
+                                                placeholder="اكتب قطاعاً مخصصاً واضغط Enter..."
+                                                className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-right text-xs text-slate-900 shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary-light transition-colors"
+                                            />
+                                        </div>
+                                        {/* Custom tags list */}
+                                        {data.experienced_sectors?.filter((s) => !SECTOR_SUGGESTIONS.includes(s)).length > 0 && (
+                                            <div className="flex flex-wrap gap-1 mt-2">
+                                                {data.experienced_sectors
+                                                    ?.filter((s) => !SECTOR_SUGGESTIONS.includes(s))
+                                                    .map((tag) => (
+                                                        <span
+                                                            key={tag}
+                                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-primary/10 text-primary border border-primary/20"
+                                                        >
+                                                            <span>{tag}</span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleRemoveSector(tag)}
+                                                                className="text-primary hover:text-red-500 transition-colors cursor-pointer"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        </span>
+                                                    ))}
+                                            </div>
+                                        )}
+                                        {(errors.experienced_sectors || serverErrors.experienced_sectors) && (
+                                            <p className="mt-1 text-xs text-red-500 text-right">
+                                                {errors.experienced_sectors || serverErrors.experienced_sectors}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            currentFields.map((field) => {
+                                return (
+                                    <div key={field.name} className={field.colSpan === 2 ? 'md:col-span-2' : 'md:col-span-1'}>
+                                        <FormInput
+                                            field={field}
+                                            value={data[field.name]}
+                                            onChange={handleChange}
+                                            error={errors[field.name] || serverErrors[field.name]}
+                                        />
+
+                                        {showCustomSectorInput && field.name === 'sector' && (
+                                            <div className="mt-2.5">
+                                                <label className="block text-xs font-medium text-slate-700 mb-1 text-right">
+                                                    أدخل المجال يدوياً
+                                                    <span className="text-red-500 mr-1">*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    name="customSector"
+                                                    value={data.customSector || ''}
+                                                    onChange={handleChange}
+                                                    placeholder="اكتب المجال باللغة العربية"
+                                                    className={`w-full rounded-xl border ${errors.customSector || serverErrors.customSector ? 'border-red-400 bg-red-50/20' : 'border-slate-200 bg-slate-50'} px-4 py-3 text-right text-sm text-slate-900 shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary-light transition-colors`}
+                                                />
+                                                {(errors.customSector || serverErrors.customSector) && (
+                                                    <p className="mt-1 text-xs text-red-500 text-right flex items-center justify-end gap-1">
+                                                        <span>{errors.customSector || serverErrors.customSector}</span>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })
+                        )}
 
                         <div className="md:col-span-2 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-slate-100">
-                            {step > 1 && (
+                            {step > 1 ? (
                                 <button
                                     type="button"
                                     onClick={handleBack}
@@ -647,7 +1245,16 @@ function Register() {
                                 >
                                     رجوع
                                 </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={handleChangeAccountType}
+                                    className="rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:scale-[1.02] cursor-pointer"
+                                >
+                                    تغيير نوع الحساب
+                                </button>
                             )}
+
                             <button
                                 type="submit"
                                 disabled={processing}
@@ -662,7 +1269,7 @@ function Register() {
                                         جاري المعالجة...
                                     </span>
                                 ) : (
-                                    step < 3 ? 'التالي' : 'إنشاء الحساب'
+                                    step < maxSteps ? 'التالي' : 'إنشاء الحساب'
                                 )}
                             </button>
                         </div>

@@ -9,6 +9,7 @@ import {
     Trash2,
 } from 'lucide-react';
 import FreelancerProfileModal from '../../Components/company/FreelancerProfileModal';
+import DeleteConfirmationModal from '../../Components/shared/DeleteConfirmationModal';
 
 export default function ChatPage({ conversation, conversations = [], search = '' }) {
     const { auth } = usePage().props;
@@ -16,6 +17,7 @@ export default function ChatPage({ conversation, conversations = [], search = ''
     const [conversationsList, setConversationsList] = useState(conversations || []);
     const [body, setBody] = useState('');
     const [deletingId, setDeletingId] = useState(null);
+    const [chatToDelete, setChatToDelete] = useState(null);
     const [viewingFreelancerId, setViewingFreelancerId] = useState(null);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
@@ -211,10 +213,13 @@ export default function ChatPage({ conversation, conversations = [], search = ''
     const handleDeleteChat = (chatId) => {
         const idToDelete = chatId || conversation?.id;
         if (!idToDelete) return;
-        if (!window.confirm('هل أنت متأكد من حذف هذه المحادثة بالكامل؟ سيتم مسح الرسائل المرتبطة بها.')) {
-            return;
-        }
+        setChatToDelete(idToDelete);
+    };
 
+    const confirmDeleteChat = () => {
+        if (chatToDelete === null) return;
+        const idToDelete = chatToDelete;
+        setChatToDelete(null);
         setDeletingId(idToDelete);
         router.delete(`/company/chat/${idToDelete}`, {
             preserveScroll: true,
@@ -258,8 +263,8 @@ export default function ChatPage({ conversation, conversations = [], search = ''
         ? conversation.freelancer?.id
         : conversation?.freelancer_id;
     const freelancerName = typeof conversation?.freelancer === 'object'
-        ? conversation.freelancer?.name || conversation.freelancer?.user_name || 'مستقل'
-        : conversation?.freelancer || 'مستقل';
+        ? conversation.freelancer?.name || conversation.freelancer?.user_name || 'خبير'
+        : conversation?.freelancer || 'خبير';
     const freelancerAvatar = typeof conversation?.freelancer === 'object'
         ? conversation.freelancer?.avatar
         : null;
@@ -293,7 +298,7 @@ export default function ChatPage({ conversation, conversations = [], search = ''
                             onClick={() => activeFreelancerId && setViewingFreelancerId(activeFreelancerId)}
                             disabled={!activeFreelancerId}
                             className="flex items-center gap-3 text-right group cursor-pointer disabled:cursor-default"
-                            title={activeFreelancerId ? 'عرض الملف الشخصي للمستقل' : undefined}
+                            title={activeFreelancerId ? 'عرض الملف الشخصي للخبير' : undefined}
                         >
                             {freelancerAvatar ? (
                                 <img
@@ -360,7 +365,7 @@ export default function ChatPage({ conversation, conversations = [], search = ''
                             <MessageSquare size={36} className="text-slate-300 mb-2" />
                             <p className="text-sm font-bold text-[#28251d]">لا توجد رسائل بعد</p>
                             <p className="text-xs text-[#7a7974] mt-1 max-w-xs">
-                                ابدأ بكتابة رسالتك لمناقشة تفاصيل العرض والاتفاق مع المستقل.
+                                ابدأ بكتابة رسالتك لمناقشة تفاصيل العرض والاتفاق مع الخبير.
                             </p>
                         </div>
                     )}
@@ -377,7 +382,7 @@ export default function ChatPage({ conversation, conversations = [], search = ''
                         type="text"
                         value={body}
                         onChange={(e) => setBody(e.target.value)}
-                        placeholder="اكتب رسالتك للمستقل..."
+                        placeholder="اكتب رسالتك للخبير..."
                         className="min-w-0 flex-1 rounded-xl border border-[#d4d1ca] px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all bg-[#faf9f6] text-[#28251d]"
                     />
 
@@ -397,6 +402,15 @@ export default function ChatPage({ conversation, conversations = [], search = ''
                     freelancer={viewingFreelancerId}
                     onClose={() => setViewingFreelancerId(null)}
                 />
+
+                <DeleteConfirmationModal
+                    isOpen={chatToDelete !== null}
+                    title="حذف المحادثة؟"
+                    description="سيتم حذف المحادثة بالكامل ومسح جميع الرسائل المرتبطة بها. لا يمكن التراجع عن هذا الإجراء."
+                    isProcessing={deletingId === chatToDelete}
+                    onCancel={() => setChatToDelete(null)}
+                    onConfirm={confirmDeleteChat}
+                />
             </div>
         );
     }
@@ -410,7 +424,7 @@ export default function ChatPage({ conversation, conversations = [], search = ''
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-[#28251d]">المحادثات</h1>
-                    <p className="text-sm text-[#7a7974] mt-1">تواصل مباشرة مع المستقلين لمناقشة العروض والمشاريع.</p>
+                    <p className="text-sm text-[#7a7974] mt-1">تواصل مباشرة مع الخبراء لمناقشة العروض والمشاريع.</p>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -425,7 +439,7 @@ export default function ChatPage({ conversation, conversations = [], search = ''
                 <div className="space-y-3">
                     {filteredConversations.map((conv) => {
                         const convFreelancerId = conv.freelancer?.id;
-                        const convName = conv.freelancer?.name || 'مستقل';
+                        const convName = conv.freelancer?.name || 'خبير';
                         const convAvatar = conv.freelancer?.avatar;
                         const convTitle = conv.requestTitle || conv.subject || '';
 
@@ -441,7 +455,7 @@ export default function ChatPage({ conversation, conversations = [], search = ''
                                         handleSelectChat(conv.id);
                                     }
                                 }}
-                                className="w-full text-right bg-white rounded-2xl border border-[#e6e4de] p-5 shadow-2xs hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer flex items-center justify-between gap-4 group"
+                                className="w-full text-right bg-white rounded-2xl border border-[#e6e4de] p-4 sm:p-5 shadow-2xs hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 group"
                             >
                                 <div className="flex items-center gap-4 min-w-0">
                                     {/* Freelancer Avatar */}
@@ -454,7 +468,7 @@ export default function ChatPage({ conversation, conversations = [], search = ''
                                             }
                                         }}
                                         className="shrink-0 transition-transform hover:scale-105 cursor-pointer"
-                                        title={convFreelancerId ? 'عرض الملف الشخصي للمستقل' : undefined}
+                                        title={convFreelancerId ? 'عرض الملف الشخصي للخبير' : undefined}
                                     >
                                         {convAvatar ? (
                                             <img
@@ -492,7 +506,7 @@ export default function ChatPage({ conversation, conversations = [], search = ''
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-3 shrink-0">
+                                <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-start sm:shrink-0">
                                     <div className="flex flex-col items-end gap-1.5 shrink-0">
                                         {conv.updatedAt && (
                                             <span className="text-xs text-[#7a7974] flex items-center gap-1">
@@ -533,7 +547,7 @@ export default function ChatPage({ conversation, conversations = [], search = ''
                     </h2>
                     <p className="text-sm text-[#7a7974] mt-1 max-w-md">
                         {search
-                            ? 'جرب البحث بكلمات مختلفة أو اسم المستقل.'
+                            ? 'جرب البحث بكلمات مختلفة أو اسم الخبير.'
                             : 'عندما تتلقى عرضاً على أحد طلباتك وتضغط "مناقشة العرض"، ستظهر المحادثة المباشرة هنا.'}
                     </p>
                 </div>
@@ -543,6 +557,15 @@ export default function ChatPage({ conversation, conversations = [], search = ''
                 isOpen={Boolean(viewingFreelancerId)}
                 freelancer={viewingFreelancerId}
                 onClose={() => setViewingFreelancerId(null)}
+            />
+
+            <DeleteConfirmationModal
+                isOpen={chatToDelete !== null}
+                title="حذف المحادثة؟"
+                description="سيتم حذف المحادثة بالكامل ومسح جميع الرسائل المرتبطة بها. لا يمكن التراجع عن هذا الإجراء."
+                isProcessing={deletingId === chatToDelete}
+                onCancel={() => setChatToDelete(null)}
+                onConfirm={confirmDeleteChat}
             />
         </div>
     );

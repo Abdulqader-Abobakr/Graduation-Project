@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from '@inertiajs/react';
+import { Menu, X } from 'lucide-react';
 import TermsAndPrivacyModal from '../Components/shared/TermsAndPrivacyModal';
 
 function Landing() {
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (window.location.hash === '#signup') {
@@ -16,14 +18,14 @@ function Landing() {
       {/* Header */}
       <header className="bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between gap-3 sm:flex-row">
+          <div className="flex items-center justify-between gap-3">
             {/* Logo */}
             <div className="flex items-center gap-3">
               <img src="/images/logo.png" alt="صلة" className="h-10 w-auto" />
             </div>
 
             {/* Navigation */}
-            <nav className="hidden md:flex items-center gap-8 text-base text-slate-600">
+            <nav className="hidden items-center gap-8 text-base text-slate-600 md:flex">
               <a href="#why-us" className="hover:text-primary font-medium">لماذا نحن</a>
               <a href="#how-it-works" className="hover:text-primary font-medium">كيف يعمل</a>
               <a href="#companies" className="hover:text-primary font-medium">لرواد الأعمال</a>
@@ -32,21 +34,74 @@ function Landing() {
             </nav>
 
             {/* Auth Buttons */}
-            <div className="hidden md:flex flex-wrap items-center justify-center gap-2 sm:gap-3 sm:justify-end">
+            <div className="hidden items-center justify-end gap-3 md:flex">
               <Link
                 href="/login"
-                className="text-sm sm:text-base font-semibold text-slate-700 hover:text-slate-900 px-2 py-1"
+                className="px-2 py-1 text-base font-semibold text-slate-700 hover:text-slate-900"
               >
                 تسجيل الدخول
               </Link>
               <Link
                 href="/register"
-                className="bg-primary text-white px-4 sm:px-6 py-2.5 rounded-lg text-sm sm:text-base font-semibold hover:bg-primary-dark transition shadow-sm"
+                className="rounded-lg bg-primary px-6 py-2.5 text-base font-semibold text-white shadow-sm transition hover:bg-primary-dark"
               >
                 ابدأ مجانا
               </Link>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen((isOpen) => !isOpen)}
+              aria-label={isMobileMenuOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="landing-mobile-menu"
+              className="inline-flex size-11 items-center justify-center rounded-xl border border-slate-200 text-slate-700 transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary md:hidden"
+            >
+              {isMobileMenuOpen ? <X size={21} /> : <Menu size={21} />}
+            </button>
           </div>
+
+          {isMobileMenuOpen && (
+            <nav
+              id="landing-mobile-menu"
+              aria-label="القائمة الرئيسية"
+              className="mt-3 flex flex-col gap-1 border-t border-slate-100 pt-3 md:hidden"
+            >
+              {[
+                ['#why-us', 'لماذا نحن'],
+                ['#how-it-works', 'كيف يعمل'],
+                ['#companies', 'لرواد الأعمال'],
+                ['#freelancers', 'للخبراء'],
+                ['#contact', 'تواصل معنا'],
+              ].map(([href, label]) => (
+                <a
+                  key={href}
+                  href={href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-primary"
+                >
+                  {label}
+                </a>
+              ))}
+
+              <div className="mt-2 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
+                <Link
+                  href="/login"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+                >
+                  تسجيل الدخول
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-center rounded-xl bg-primary px-3 py-2.5 text-sm font-bold text-white transition hover:bg-primary-dark"
+                >
+                  ابدأ مجانا
+                </Link>
+              </div>
+            </nav>
+          )}
         </div>
       </header>
 

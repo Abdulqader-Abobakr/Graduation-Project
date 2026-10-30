@@ -33,9 +33,24 @@ class ProfileController extends Controller
     public function show()
     {
         $user       = auth()->user();
-        $freelancer = $user->freelancer;
+        $freelancer = $user->freelancer()
+            ->with(['portfolios' => function ($query) {
+                $query->orderBy('created_at', 'desc');
+            }])
+            ->first();
 
         $avatarUrl = $user->avatar_path; // avatar_path now stores the full public URL
+
+        $portfolios = $freelancer && $freelancer->portfolios
+            ? $freelancer->portfolios->map(function ($portfolio) {
+                return [
+                    'id' => (string) $portfolio->id,
+                    'title' => $portfolio->title,
+                    'marketing_domain' => $portfolio->marketing_domain,
+                    'images' => $portfolio->images ?? [],
+                ];
+            })->values()->all()
+            : [];
 
         return Inertia::render('freelancer/Profile', [
             'pageTitle'  => $user->user_name ?: 'الملف الشخصي',
@@ -47,12 +62,12 @@ class ProfileController extends Controller
                 'avatar_path'  => $avatarUrl,
             ],
             'freelancer' => [
-                // job_title and bio now exist as real DB columns on sila_p.freelancers
                 'job_title'              => $freelancer?->job_title ?? '',
                 'bio'                    => $freelancer?->bio ?? '',
                 'marketing_specialties'  => $freelancer?->marketing_specialties ?? [],
                 'experienced_sectors'    => $freelancer?->experienced_sectors ?? [],
             ],
+            'portfolios' => $portfolios,
         ]);
     }
 
@@ -61,8 +76,14 @@ class ProfileController extends Controller
         $user = auth()->user();
 
         $validated = $request->validate([
-            'user_name'              => 'required|string|max:255',
-            'email'                  => [
+            'user_name' => [
+                'required',
+                'string',
+                'min:2',
+                'max:70',
+                'regex:/^[\x{0600}-\x{06FF}a-zA-Z\s\.\-\']+$/u',
+            ],
+            'email' => [
                 'required',
                 'email',
                 'max:255',
@@ -71,15 +92,89 @@ class ProfileController extends Controller
                     'email'
                 )->ignore($user->getKey(), $user->getKeyName()),
             ],
-            'phone_number'           => 'nullable|string|max:50',
-            'city'                   => 'nullable|string|max:255',
-            'job_title'              => 'nullable|string|max:255',
-            'bio'                    => 'nullable|string',
-            'marketing_specialties'  => 'nullable|array',
-            'marketing_specialties.*' => 'string',
-            'experienced_sectors'    => 'nullable|array',
-            'experienced_sectors.*'  => 'string',
-            'avatar'                 => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'phone_number' => [
+                'required',
+                'string',
+                'min:7',
+                'max:20',
+                'regex:/^(\+?[0-9\s\-()]{7,20})$/',
+            ],
+            'city' => [
+                'required',
+                'string',
+                'min:2',
+                'max:60',
+                'regex:/^[\x{0600}-\x{06FF}a-zA-Z\s\-]+$/u',
+            ],
+            'job_title' => [
+                'required',
+                'string',
+                'min:2',
+                'max:100',
+                'regex:/^[\x{0600}-\x{06FF}a-zA-Z0-9\s\.\,\-\/\&]+$/u',
+            ],
+            'bio' => [
+                'nullable',
+                'string',
+                'max:1000',
+            ],
+            'marketing_specialties' => [
+                'required',
+                'array',
+                'min:1',
+            ],
+            'marketing_specialties.*' => [
+                'required',
+                'string',
+                'min:2',
+                'max:50',
+                'regex:/^[\x{0600}-\x{06FF}a-zA-Z0-9\s\.\,\-\/\&]+$/u',
+            ],
+            'experienced_sectors' => [
+                'required',
+                'array',
+                'min:1',
+            ],
+            'experienced_sectors.*' => [
+                'required',
+                'string',
+                'min:2',
+                'max:50',
+                'regex:/^[\x{0600}-\x{06FF}a-zA-Z0-9\s\.\,\-\/\&]+$/u',
+            ],
+            'avatar' => [
+                'nullable',
+                'image',
+                'mimes:jpeg,png,jpg,webp',
+                'max:5120',
+            ],
+        ], [
+            'user_name.required' => 'حقل الاسم الكامل مطلوب ولا يمكن تركه فارغاً.',
+            'user_name.min' => 'يجب ألا يقل الاسم عن حرفين.',
+            'user_name.max' => 'يجب ألا يتجاوز الاسم 70 حرفاً.',
+            'user_name.regex' => 'الاسم يجب أن يحتوي على حروف ومسافات فقط.',
+            'email.required' => 'حقل البريد الإلكتروني مطلوب.',
+            'email.email' => 'يرجى إدخال بريد إلكتروني صالح.',
+            'email.unique' => 'البريد الإلكتروني مستخدم بالفعل.',
+            'phone_number.required' => 'حقل رقم الهاتف مطلوب ولا يمكن تركه فارغاً.',
+            'phone_number.min' => 'رقم الهاتف قصير جداً (7 أرقام على الأقل).',
+            'phone_number.regex' => 'يرجى إدخال رقم هاتف صالح بالأرقام فقط.',
+            'city.required' => 'حقل المدينة مطلوب ولا يمكن تركه فارغاً.',
+            'city.min' => 'اسم المدينة قصير جداً.',
+            'city.regex' => 'اسم المدينة يجب أن يحتوي على حروف فقط.',
+            'job_title.required' => 'حقل المسمى الوظيفي مطلوب ولا يمكن تركه فارغاً.',
+            'job_title.min' => 'يجب ألا يقل المسمى الوظيفي عن حرفين.',
+            'job_title.regex' => 'المسمى الوظيفي يحتوي على رموز غير مسموح بها.',
+            'bio.max' => 'النبذة التعريفية يجب ألا تتجاوز 1000 حرف.',
+            'marketing_specialties.required' => 'يرجى إضافة مهارة أو خدمة واحدة على الأقل قبل الحفظ.',
+            'marketing_specialties.min' => 'يرجى إضافة مهارة أو خدمة واحدة على الأقل قبل الحفظ.',
+            'marketing_specialties.*.regex' => 'المهارة أو الخدمة تحتوي على رموز غير مسموح بها.',
+            'experienced_sectors.required' => 'يرجى إضافة قطاع أو مجال خبرة واحد على الأقل قبل الحفظ.',
+            'experienced_sectors.min' => 'يرجى إضافة قطاع أو مجال خبرة واحد على الأقل قبل الحفظ.',
+            'experienced_sectors.*.regex' => 'اسم القطاع يحتوي على رموز غير مسموح بها.',
+            'avatar.image' => 'يجب أن يكون الملف المرفق صورة صالحة.',
+            'avatar.mimes' => 'صيغ الصور المسموح بها هي jpeg, png, jpg, webp.',
+            'avatar.max' => 'الحد الأقصى لحجم الصورة هو 5 ميجابايت.',
         ]);
 
         // Handle avatar upload to Supabase 'avatars' bucket
@@ -104,10 +199,10 @@ class ProfileController extends Controller
         }
 
         $user->update([
-            'user_name'    => $validated['user_name'],
-            'email'        => $validated['email'],
-            'phone_number' => $validated['phone_number'] ?? null,
-            'city'         => $validated['city'] ?? null,
+            'user_name'    => trim($validated['user_name']),
+            'email'        => trim($validated['email']),
+            'phone_number' => trim($validated['phone_number']),
+            'city'         => trim($validated['city']),
             'avatar_path'  => $user->avatar_path,
         ]);
 
@@ -117,14 +212,19 @@ class ProfileController extends Controller
             $freelancer = $user->freelancer()->create();
         }
 
+        $cleanBio = isset($validated['bio']) ? strip_tags(trim($validated['bio'])) : null;
+
+        $cleanSpecialties = array_values(array_filter(array_map('trim', $validated['marketing_specialties'] ?? [])));
+        $cleanSectors = array_values(array_filter(array_map('trim', $validated['experienced_sectors'] ?? [])));
+
         $freelancer->update([
-            'job_title'             => $validated['job_title'] ?? null,
-            'bio'                   => $validated['bio'] ?? null,
-            'marketing_specialties' => $validated['marketing_specialties'] ?? [],
-            'experienced_sectors'   => $validated['experienced_sectors'] ?? [],
+            'job_title'             => trim($validated['job_title']),
+            'bio'                   => $cleanBio,
+            'marketing_specialties' => $cleanSpecialties,
+            'experienced_sectors'   => $cleanSectors,
         ]);
 
-        return redirect()->back()->with('success', 'تم تحديث الملف الشخصي بنجاح.');
+        return redirect()->back()->with('success', 'تم حفظ وتحديث الملف الشخصي بنجاح.');
     }
 
     public function updatePassword(Request $request, SupabaseService $supabase)

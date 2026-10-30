@@ -83,6 +83,6 @@ class PaymentController extends Controller
 
         return redirect()
             ->route('company.dashboard', ['tab' => 'projects'])
-            ->with('success', 'تم تأكيد الدفع وتفعيل المشروع بنجاح، والمبلغ الآن في حساب الضمان للمستقل.');
+            ->with('success', 'تم تأكيد الدفع وتفعيل المشروع بنجاح، والمبلغ الآن في حساب الضمان للخبير.');
     }
 }

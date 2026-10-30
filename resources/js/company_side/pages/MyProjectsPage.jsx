@@ -114,13 +114,13 @@ export default function MyProjectsPage({
                                     <div>
                                         <h2 className="text-lg font-bold text-[#28251d]">{project.title}</h2>
                                         <p className="mt-1 text-sm text-[#7a7974] flex items-center gap-1.5 flex-wrap">
-                                            <span>المستقل:</span>
+                                            <span>الخبير:</span>
                                             {project.freelancerId ? (
                                                 <button
                                                     type="button"
                                                     onClick={() => setViewingFreelancerId(project.freelancerId)}
                                                     className="font-bold text-primary hover:underline cursor-pointer"
-                                                    title="عرض الملف الشخصي للمستقل"
+                                                    title="عرض الملف الشخصي للخبير"
                                                 >
                                                     {project.client}
                                                 </button>
@@ -178,7 +178,7 @@ export default function MyProjectsPage({
                         <>
                             <p className="text-lg">لا توجد مشاريع حالياً</p>
                             <p className="text-sm mt-1">
-                                ستظهر هنا المشاريع التي يتم الاتفاق عليها مع المستقلين.
+                                ستظهر هنا المشاريع التي يتم الاتفاق عليها مع الخبراء.
                             </p>
                         </>
                     )}

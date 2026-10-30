@@ -80,7 +80,7 @@ class ChatController extends Controller
                     'requestTitle' => $conv->brief_title,
                     'freelancer' => [
                         'id' => (string) $conv->fl_id,
-                        'name' => $conv->fl_name ?? 'مستقل',
+                        'name' => $conv->fl_name ?? 'خبير',
                         'avatar' => $conv->fl_avatar,
                     ],
                     'lastMessage' => $conv->latest_msg_body,

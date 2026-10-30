@@ -38,7 +38,7 @@ export default function Sidebar({ activePage, onPageChange, isSidebarOpen }) {
     const chatBadge = props.unreadChatCount > 0 ? props.unreadChatCount : null;
 
     return (
-        <aside className={`${isSidebarOpen ? 'w-64' : 'w-20'} bg-primary text-white border-none flex flex-col transition-all duration-300 relative z-50 shrink-0`}>
+        <aside className={`${isSidebarOpen ? 'w-64 translate-x-0' : 'w-20 max-md:translate-x-full'} max-md:fixed max-md:inset-y-0 max-md:right-0 max-md:z-50 max-md:w-64 bg-primary text-white border-none flex flex-col transition-all duration-300 relative z-50 shrink-0`}>
             <div className="p-4 mb-4 flex items-center justify-center transition-all duration-300">
                 <div className={`rounded-2xl bg-white flex items-center justify-center shadow-sm transition-all duration-300 ${isSidebarOpen ? 'w-24 h-24 p-4' : 'w-10 h-10 p-1.5'}`}>
                     <img src="/images/logo.png" alt="Logo" className="w-full h-full object-contain transition-all duration-300" />
@@ -83,4 +83,3 @@ export default function Sidebar({ activePage, onPageChange, isSidebarOpen }) {
         </aside>
     );
 }
-

@@ -202,7 +202,7 @@ export default function FreelancerProfileModal({
                 },
             });
             if (!res.ok) {
-                throw new Error('تعذر تحميل بيانات المستقل');
+                throw new Error('تعذر تحميل بيانات الخبير');
             }
             const data = await res.json();
             setProfile(data);
@@ -218,8 +218,8 @@ export default function FreelancerProfileModal({
     if (!isOpen) return null;
 
     const avatarUrl = normalizeImageUrl(profile?.avatar);
-    const name = profile?.name || 'مستقل';
-    const jobTitle = profile?.jobTitle || 'مستقل محترف';
+    const name = profile?.name || 'خبير';
+    const jobTitle = profile?.jobTitle || 'خبير محترف';
     const bio = profile?.bio;
     const city = profile?.city;
     const completedCount = profile?.completedProjectsCount ?? 0;
@@ -245,7 +245,7 @@ export default function FreelancerProfileModal({
                 {/* Header Bar */}
                 <header className="px-6 py-4 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
                     <div>
-                        <h3 className="text-base font-bold text-slate-800">الملف المهني للمستقل</h3>
+                        <h3 className="text-base font-bold text-slate-800">الملف المهني للخبير</h3>
                         <p className="text-xs text-slate-400">استعرض الخبرات، النبذة التعريفية، ومعرض الأعمال</p>
                     </div>
                     <button
@@ -332,7 +332,7 @@ export default function FreelancerProfileModal({
                                     </p>
                                 ) : (
                                     <p className="text-sm text-slate-400 italic bg-slate-50/60 p-4 rounded-xl border border-slate-100">
-                                        لم يقم المستقل بإضافة نبذة تعريفية بعد.
+                                        لم يقم الخبير بإضافة نبذة تعريفية بعد.
                                     </p>
                                 )}
                             </section>
@@ -407,7 +407,7 @@ export default function FreelancerProfileModal({
                                     <div className="border border-dashed border-slate-200 rounded-2xl p-8 text-center bg-slate-50/50">
                                         <FolderOpen size={36} className="mx-auto text-slate-300 mb-2" />
                                         <p className="text-sm font-bold text-slate-600">لا توجد أعمال مضافة إلى المعرض حالياً</p>
-                                        <p className="text-xs text-slate-400 mt-1">لم يقم المستقل برفع نماذج أعمال إلى المعرض حتى الآن.</p>
+                                        <p className="text-xs text-slate-400 mt-1">لم يقم الخبير برفع نماذج أعمال إلى المعرض حتى الآن.</p>
                                     </div>
                                 )}
                             </section>
@@ -427,7 +427,7 @@ export default function FreelancerProfileModal({
                             className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-[#1b62c4] transition-colors shadow-sm cursor-pointer"
                         >
                             <Send size={15} />
-                            <span>طلب خدمة من المستقل</span>
+                            <span>طلب خدمة من الخبير</span>
                         </button>
                     </footer>
                 )}

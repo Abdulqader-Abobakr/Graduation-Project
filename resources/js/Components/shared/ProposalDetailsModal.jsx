@@ -33,7 +33,7 @@ export default function ProposalDetailsModal({ proposal, onClose, onAccept, onCh
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" dir="rtl" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200 text-start">
         {/* Header */}
-        <header className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0 rounded-t-3xl">
+        <header className="p-4 sm:p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0 rounded-t-3xl">
           <h3 className="text-xl font-bold text-slate-800 flex items-center gap-3">
             <FileText className="text-[#2a7de1]" />
             تفاصيل العرض المالي
@@ -47,7 +47,7 @@ export default function ProposalDetailsModal({ proposal, onClose, onAccept, onCh
         </header>
 
         {/* Content */}
-        <div className="p-8 overflow-y-auto space-y-10 flex-1">
+        <div className="p-4 sm:p-8 overflow-y-auto space-y-10 flex-1">
           {/* Part 1: Basic Details */}
           <div className="space-y-6">
             <div className="flex items-center gap-2 text-slate-400 border-b border-slate-50 pb-2">

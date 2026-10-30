@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Bell, ChevronDown, ClipboardList, Edit3, Plus, Trash2, Send, FileText, Eye } from 'lucide-react';
 import { router } from '@inertiajs/react';
 import CreateRequestModal from '../../Components/company/CreateRequestModal';
+import DeleteConfirmationModal from '../../Components/shared/DeleteConfirmationModal';
 import ProposalDetailsModal from '../../Components/shared/ProposalDetailsModal';
 import FreelancerProfileModal from '../../Components/company/FreelancerProfileModal';
 
@@ -34,6 +35,7 @@ export default function MyRequestsPage({
     const [viewingFreelancerId, setViewingFreelancerId] = useState(null);
     const [expandedRequests, setExpandedRequests] = useState(new Set());
     const [processingProposal, setProcessingProposal] = useState(false);
+    const [requestToDelete, setRequestToDelete] = useState(null);
 
     // Track opened proposals in localStorage to persistent read status
     const [openedProposalIds, setOpenedProposalIds] = useState(() => {
@@ -160,7 +162,7 @@ export default function MyRequestsPage({
     return (
         <div className="w-full max-w-5xl mx-auto">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col items-stretch justify-between gap-4 mb-6 sm:flex-row sm:items-center">
                 <div>
                     <h1 className="text-2xl font-bold text-[#28251d]">الطلبات والعروض</h1>
                     <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
@@ -169,7 +171,7 @@ export default function MyRequestsPage({
                 </div>
                 <button
                     onClick={openCreateModal}
-                    className="flex items-center gap-2 bg-primary text-white px-5 py-3 rounded-xl font-bold hover:bg-[#1b62c4] transition-colors shadow-sm cursor-pointer"
+                    className="flex items-center justify-center gap-2 self-start bg-primary text-white px-5 py-3 rounded-xl font-bold hover:bg-[#1b62c4] transition-colors shadow-sm cursor-pointer sm:self-auto"
                 >
                     <Plus size={18} />
                     إنشاء طلب جديد
@@ -387,9 +389,7 @@ export default function MyRequestsPage({
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        if (window.confirm('هل أنت متأكد من حذف هذا الطلب؟')) onDelete(request.id);
-                                    }}
+                                    onClick={() => setRequestToDelete(request.id)}
                                     title="حذف الطلب"
                                     className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600 transition hover:bg-red-50"
                                 >
@@ -441,6 +441,18 @@ export default function MyRequestsPage({
                 isOpen={Boolean(viewingFreelancerId)}
                 freelancer={viewingFreelancerId}
                 onClose={() => setViewingFreelancerId(null)}
+            />
+
+            <DeleteConfirmationModal
+                isOpen={requestToDelete !== null}
+                title="حذف الطلب؟"
+                description="سيتم حذف هذا الطلب المنشور نهائياً. هل تريد المتابعة؟"
+                onCancel={() => setRequestToDelete(null)}
+                onConfirm={() => {
+                    if (requestToDelete === null) return;
+                    onDelete(requestToDelete);
+                    setRequestToDelete(null);
+                }}
             />
         </div>
     );

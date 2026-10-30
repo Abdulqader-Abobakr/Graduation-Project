@@ -5,7 +5,7 @@ export default function Header({
     onMenuToggle,
     search,
     setSearch,
-    searchPlaceholder = 'ابحث عن مستقل أو تخصص أو مهارة...',
+    searchPlaceholder = 'ابحث عن خبير أو تخصص أو مهارة...',
     onSearchSubmit,
     filterLabel = 'تصفية',
     filterOptions = [],
@@ -42,9 +42,9 @@ export default function Header({
                     </button>
                 </div>
 
-                <div className="hidden w-full max-w-3xl items-center gap-2 md:flex">
+                <div className="flex w-full max-w-3xl flex-wrap items-center gap-2">
                     {/* Search Form */}
-                    <form onSubmit={onSearchSubmit} className="flex min-w-0 flex-1 flex-row-reverse">
+                    <form onSubmit={onSearchSubmit} className="flex min-w-0 flex-1 basis-full flex-row-reverse sm:basis-auto">
                         <input
                             type="text"
                             value={search}

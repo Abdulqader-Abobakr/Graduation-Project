@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { usePage, router, Link } from '@inertiajs/react';
 import ProposalFormModal from '../../Components/freelancer/ProposalFormModal';
+import DeleteConfirmationModal from '../../Components/shared/DeleteConfirmationModal';
 import {
     ArrowRight,
     Clock,
@@ -16,6 +17,7 @@ export default function Chat({ conversation, conversations = [], search = '', ac
     const [conversationsList, setConversationsList] = useState(conversations || []);
     const [body, setBody] = useState('');
     const [deletingId, setDeletingId] = useState(null);
+    const [chatToDelete, setChatToDelete] = useState(null);
     const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
@@ -211,10 +213,13 @@ export default function Chat({ conversation, conversations = [], search = '', ac
     const handleDeleteChat = (chatId) => {
         const idToDelete = chatId || conversation?.id;
         if (!idToDelete) return;
-        if (!window.confirm('هل أنت متأكد من حذف هذه المحادثة بالكامل؟ سيتم مسح الرسائل المرتبطة بها.')) {
-            return;
-        }
+        setChatToDelete(idToDelete);
+    };
 
+    const confirmDeleteChat = () => {
+        if (chatToDelete === null) return;
+        const idToDelete = chatToDelete;
+        setChatToDelete(null);
         setDeletingId(idToDelete);
         router.delete(`/freelancer/chat/${idToDelete}`, {
             preserveScroll: true,
@@ -386,6 +391,15 @@ export default function Chat({ conversation, conversations = [], search = '', ac
                         <span>إرسال</span>
                     </button>
                 </form>
+
+                <DeleteConfirmationModal
+                    isOpen={chatToDelete !== null}
+                    title="حذف المحادثة؟"
+                    description="سيتم حذف المحادثة بالكامل ومسح جميع الرسائل المرتبطة بها. لا يمكن التراجع عن هذا الإجراء."
+                    isProcessing={deletingId === chatToDelete}
+                    onCancel={() => setChatToDelete(null)}
+                    onConfirm={confirmDeleteChat}
+                />
             </div>
         );
     }
@@ -429,7 +443,7 @@ export default function Chat({ conversation, conversations = [], search = '', ac
                                         handleSelectChat(conv.id);
                                     }
                                 }}
-                                className="w-full text-right bg-white rounded-2xl border border-[#e6e4de] p-5 shadow-2xs hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer flex items-center justify-between gap-4 group"
+                                className="w-full text-right bg-white rounded-2xl border border-[#e6e4de] p-4 sm:p-5 shadow-2xs hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 group"
                             >
                                 <div className="flex items-center gap-4 min-w-0">
                                     {/* Client Avatar */}
@@ -468,7 +482,7 @@ export default function Chat({ conversation, conversations = [], search = '', ac
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-3 shrink-0">
+                                <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-start sm:shrink-0">
                                     <div className="flex flex-col items-end gap-1.5 shrink-0">
                                         {conv.updatedAt && (
                                             <span className="text-xs text-[#7a7974] flex items-center gap-1">
@@ -541,6 +555,15 @@ export default function Chat({ conversation, conversations = [], search = '', ac
                     }}
                 />
             )}
+
+            <DeleteConfirmationModal
+                isOpen={chatToDelete !== null}
+                title="حذف المحادثة؟"
+                description="سيتم حذف المحادثة بالكامل ومسح جميع الرسائل المرتبطة بها. لا يمكن التراجع عن هذا الإجراء."
+                isProcessing={deletingId === chatToDelete}
+                onCancel={() => setChatToDelete(null)}
+                onConfirm={confirmDeleteChat}
+            />
         </div>
     );
 }

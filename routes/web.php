@@ -119,10 +119,12 @@ Route::prefix('freelancer')
         Route::get('/projects/{project}/deliverables/{deliverable}/download', [Freelancer\ProjectController::class, 'downloadDeliverable'])->name('freelancer.projects.deliverables.download');
         Route::get('/projects/{project}/deliverables/{deliverable}/view', [Freelancer\ProjectController::class, 'viewDeliverable'])->name('freelancer.projects.deliverables.view');
         Route::post('/projects/{project}/disputes', [Freelancer\ProjectController::class, 'storeDispute'])->name('freelancer.projects.disputes.store');
-        Route::get('/services', [Freelancer\ServiceController::class, 'index'])->name('freelancer.services');
-        Route::post('/services/portfolio', [Freelancer\ServiceController::class, 'storePortfolio'])->name('freelancer.portfolio.store');
-        Route::post('/services/portfolio/{id}', [Freelancer\ServiceController::class, 'updatePortfolio'])->name('freelancer.portfolio.update');
-        Route::post('/services/specialties', [Freelancer\ServiceController::class, 'updateSpecialties'])->name('freelancer.specialties.update');
+        Route::post('/portfolio', [Freelancer\PortfolioController::class, 'store'])->name('freelancer.portfolio.store');
+        Route::post('/portfolio/{id}', [Freelancer\PortfolioController::class, 'update'])->name('freelancer.portfolio.update');
+        Route::delete('/portfolio/{id}', [Freelancer\PortfolioController::class, 'destroy'])->name('freelancer.portfolio.destroy');
+        Route::post('/services/portfolio', [Freelancer\PortfolioController::class, 'store']);
+        Route::post('/services/portfolio/{id}', [Freelancer\PortfolioController::class, 'update']);
+        Route::delete('/services/portfolio/{id}', [Freelancer\PortfolioController::class, 'destroy']);
         Route::get('/earnings', [Freelancer\EarningsController::class, 'index'])->name('freelancer.earnings');
         Route::post('/earnings/withdraw', [Freelancer\EarningsController::class, 'withdraw'])->name('freelancer.earnings.withdraw');
         Route::get('/profile', [Freelancer\ProfileController::class, 'show'])->name('freelancer.profile');

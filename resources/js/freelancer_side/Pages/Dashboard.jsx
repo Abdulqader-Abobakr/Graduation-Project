@@ -32,11 +32,66 @@ const categoryLabels = {
 };
 
 const categoryGroupMap = {
-  tech: ['tech', 'dev', 'web_mobile_development', 'it', 'software', 'programming'],
-  design: ['design', 'graphic_design_branding', 'branding', 'ui_ux', 'creative'],
-  marketing: ['marketing', 'marketing_services', 'digital_marketing', 'social_media_management', 'seo'],
-  writing: ['writing', 'content', 'translation', 'copywriting'],
-  business: ['business', 'business_consulting', 'business_plan_preparation', 'market_research', 'analytics', 'consulting'],
+  tech: [
+    'tech',
+    'dev',
+    'web_mobile_development',
+    'it',
+    'software',
+    'programming',
+    'تطوير المتاجر الإلكترونية',
+    'تطوير المواقع وصفحات الهبوط',
+    'تطوير المواقع التعريفية وصفحات الهبوط',
+    'تطوير تطبيقات الويب والأنظمة',
+    'تطوير تطبيقات الويب والأنظمة المخصصة',
+    'ربط البرمجيات وأتمتة الأعمال',
+    'تحسين الأداء والأمان والصيانة',
+    'تحسين أداء المواقع والأمان والصيانة التقنية',
+  ],
+  design: [
+    'design',
+    'graphic_design_branding',
+    'branding',
+    'ui_ux',
+    'creative',
+    'تصميم الهوية البصرية والشعارات',
+    'تصميم واجهات وتجربة المستخدم',
+    'تصميم التغليف وملصقات المنتجات',
+    'تصميم العروض والملفات التعريفية',
+    'تصميم العروض الاستثمارية والملفات التعريفية',
+    'تصميم منشورات التواصل الاجتماعي',
+    'تصميم منشورات وإعلانات التواصل الاجتماعي',
+    'مونتاج الفيديوهات والرسوم',
+    'مونتاج الفيديوهات القصيرة والرسوم المتحركة',
+  ],
+  marketing: [
+    'marketing',
+    'marketing_services',
+    'digital_marketing',
+    'social_media_management',
+    'seo',
+    'إدارة الحملات الإعلانية الممولة',
+    'الخطط والاستراتيجيات التسويقية',
+    'إعداد الخطط والاستراتيجيات التسويقية',
+    'تحسين محركات البحث والظهور المحلي',
+    'إدارة التواصل الاجتماعي والمحتوى',
+    'إدارة حسابات التواصل الاجتماعي وجدولة المحتوى',
+  ],
+  writing: [
+    'writing',
+    'content',
+    'translation',
+    'copywriting',
+    'كتابة المحتوى الإعلاني والبيعي',
+  ],
+  business: [
+    'business',
+    'business_consulting',
+    'business_plan_preparation',
+    'market_research',
+    'analytics',
+    'consulting',
+  ],
 };
 
 export default function Dashboard({
@@ -140,7 +195,7 @@ export default function Dashboard({
   const userName = auth?.user?.user_name || 'المستقل';
 
   return (
-    <div className="p-8 space-y-8" dir="rtl">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-8" dir="rtl">
 
       {/* Welcome Banner */}
       <div className="bg-linear-to-br from-primary via-primary/80 to-primary rounded-2xl p-8 text-white relative overflow-hidden shadow-lg shadow-primary/20">

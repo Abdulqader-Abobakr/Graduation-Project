@@ -66,8 +66,8 @@ class HandleInertiaRequests extends Middleware
             'pageTitle' => null,
             // Flash messages — available as usePage().props.flash in React
             'flash' => [
-                'success' => $request->session()->get('success'),
-                'error'   => $request->session()->get('error'),
+                'success' => $request->session()->pull('success'),
+                'error'   => $request->session()->pull('error'),
             ],
             'unreadChatCount' => $user ? Cache::remember("user_unread_chat_{$user->id}", 30, function () use ($user) {
                 return ($user->role === 'client_company' || $user->role === 'company')

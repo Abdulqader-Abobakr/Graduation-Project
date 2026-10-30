@@ -100,7 +100,7 @@ class BriefController extends Controller
                     'proposals' => $brief->proposals->map(fn($proposal) => [
                         'id' => (string) $proposal->id,
                         'freelancerId' => (string) $proposal->freelancer_id,
-                        'freelancerName' => $proposal->freelancer_name ?? 'مستقل',
+                        'freelancerName' => $proposal->freelancer_name ?? 'خبير',
                         'title' => $proposal->title,
                         'price' => (float) $proposal->price,
                         'revision_limit' => $proposal->revision_limit,
@@ -142,7 +142,7 @@ class BriefController extends Controller
                 'freelancerId' => (string) $project->freelancer_id,
                 'title'        => $project->title,
                 'status'       => $project->status,
-                'client'       => $project->freelancer_name ?? 'مستقل',
+                'client'       => $project->freelancer_name ?? 'خبير',
             ])
             ->all();
     }
@@ -168,7 +168,7 @@ class BriefController extends Controller
                 ->map(fn(Freelancer $freelancer) => [
                     'id' => (string) $freelancer->user_id,
                     'freelancer_id' => (string) $freelancer->id,
-                    'name' => $freelancer->user_name ?? 'مستقل',
+                    'name' => $freelancer->user_name ?? 'خبير',
                     'avatar' => $freelancer->user_avatar_path,
                     'city' => $freelancer->user_city,
                     'jobTitle' => $freelancer->job_title,
@@ -218,13 +218,13 @@ class BriefController extends Controller
         if (! $freelancer) {
             $user = User::where('id', $id)->where('role', 'freelancer')->first();
             if (! $user) {
-                abort(404, 'المستقل غير موجود.');
+                abort(404, 'الخبير غير موجود.');
             }
 
             $data = [
                 'id' => (string) $user->id,
                 'freelancer_id' => null,
-                'name' => $user->user_name ?? 'مستقل',
+                'name' => $user->user_name ?? 'خبير',
                 'avatar' => $user->avatar_path,
                 'city' => $user->city,
                 'jobTitle' => null,
@@ -248,7 +248,7 @@ class BriefController extends Controller
         $data = [
             'id' => (string) $freelancer->user_id,
             'freelancer_id' => (string) $freelancer->id,
-            'name' => $freelancer->user_name ?? 'مستقل',
+            'name' => $freelancer->user_name ?? 'خبير',
             'avatar' => $freelancer->user_avatar_path,
             'city' => $freelancer->user_city,
             'jobTitle' => $freelancer->job_title,
@@ -327,7 +327,7 @@ class BriefController extends Controller
                     'requestTitle' => $conv->brief_title,
                     'freelancer' => [
                         'id' => (string) $conv->fl_id,
-                        'name' => $conv->fl_name ?? 'مستقل',
+                        'name' => $conv->fl_name ?? 'خبير',
                         'avatar' => $conv->fl_avatar,
                     ],
                     'lastMessage' => $conv->latest_msg_body,
@@ -380,7 +380,7 @@ class BriefController extends Controller
             'requestTitle' => $conv->brief_title ?: $conv->subject,
             'freelancer' => [
                 'id' => (string) $conv->fl_id,
-                'name' => $conv->fl_name ?? 'المستقل',
+                'name' => $conv->fl_name ?? 'الخبير',
                 'avatar' => $conv->fl_avatar,
             ],
             'messages' => ChatController::getCachedMessages((string) $conversationId),
@@ -464,7 +464,7 @@ class BriefController extends Controller
             'client_id' => $userId,
             'targeted_freelancer_id' => $validated['targeted_freelancer_id'],
             'title' => $validated['title'],
-            'category' => $validated['category'],
+            'category' => $this->normalizeCategory($validated['category']),
             'provider_type' => $validated['provider_type'],
             'description' => strip_tags((string) $validated['description']),
             'status' => 'open',
@@ -505,7 +505,11 @@ class BriefController extends Controller
     {
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'category' => ['required', 'in:digital_marketing,branding,dev,analytics,content,تسويق رقمي,تصميم وهويات بصرية,تطوير مواقع وتطبيقات,تحليلات ولوحات بيانات,كتابة وإعداد محتوى'],
+            'category' => [
+                'required',
+                'string',
+                'in:تطوير المتاجر الإلكترونية,تطوير المواقع وصفحات الهبوط,تطوير تطبيقات الويب والأنظمة,ربط البرمجيات وأتمتة الأعمال,تحسين الأداء والأمان والصيانة,تصميم الهوية البصرية والشعارات,تصميم واجهات وتجربة المستخدم,تصميم التغليف وملصقات المنتجات,تصميم العروض والملفات التعريفية,إدارة الحملات الإعلانية الممولة,الخطط والاستراتيجيات التسويقية,تحسين محركات البحث والظهور المحلي,كتابة المحتوى الإعلاني والبيعي,إدارة التواصل الاجتماعي والمحتوى,تصميم منشورات التواصل الاجتماعي,مونتاج الفيديوهات والرسوم,تطوير المواقع التعريفية وصفحات الهبوط,تطوير تطبيقات الويب والأنظمة المخصصة,تحسين أداء المواقع والأمان والصيانة التقنية,تصميم العروض الاستثمارية والملفات التعريفية,إعداد الخطط والاستراتيجيات التسويقية,إدارة حسابات التواصل الاجتماعي وجدولة المحتوى,تصميم منشورات وإعلانات التواصل الاجتماعي,مونتاج الفيديوهات القصيرة والرسوم المتحركة,digital_marketing,branding,dev,analytics,content,تسويق رقمي,تصميم وهويات بصرية,تطوير مواقع وتطبيقات,تحليلات ولوحات بيانات,كتابة وإعداد محتوى',
+            ],
             'provider_type' => ['required', 'in:public,specific'],
             'targeted_freelancer_id' => ['nullable', 'uuid'],
             'description' => ['required', 'string', 'max:10000'],
@@ -517,7 +521,7 @@ class BriefController extends Controller
             abort_unless(
                 $targetId !== '' && ($inCachedList || User::whereKey($targetId)->where('role', 'freelancer')->exists()),
                 422,
-                'يرجى اختيار مستقل صحيح.'
+                'يرجى اختيار خبير صحيح.'
             );
         } else {
             $validated['targeted_freelancer_id'] = null;
@@ -526,12 +530,38 @@ class BriefController extends Controller
         return $validated;
     }
 
+    private function normalizeCategory(string $category): string
+    {
+        $categoryMap = [
+            'تطوير المواقع التعريفية وصفحات الهبوط' => 'تطوير المواقع وصفحات الهبوط',
+            'تطوير تطبيقات الويب والأنظمة المخصصة' => 'تطوير تطبيقات الويب والأنظمة',
+            'تحسين أداء المواقع والأمان والصيانة التقنية' => 'تحسين الأداء والأمان والصيانة',
+            'تصميم العروض الاستثمارية والملفات التعريفية' => 'تصميم العروض والملفات التعريفية',
+            'إعداد الخطط والاستراتيجيات التسويقية' => 'الخطط والاستراتيجيات التسويقية',
+            'إدارة حسابات التواصل الاجتماعي وجدولة المحتوى' => 'إدارة التواصل الاجتماعي والمحتوى',
+            'تصميم منشورات وإعلانات التواصل الاجتماعي' => 'تصميم منشورات التواصل الاجتماعي',
+            'مونتاج الفيديوهات القصيرة والرسوم المتحركة' => 'مونتاج الفيديوهات والرسوم',
+            'digital_marketing' => 'إدارة الحملات الإعلانية الممولة',
+            'branding' => 'تصميم الهوية البصرية والشعارات',
+            'dev' => 'تطوير تطبيقات الويب والأنظمة',
+            'analytics' => 'ربط البرمجيات وأتمتة الأعمال',
+            'content' => 'كتابة المحتوى الإعلاني والبيعي',
+            'تسويق رقمي' => 'إدارة الحملات الإعلانية الممولة',
+            'تصميم وهويات بصرية' => 'تصميم الهوية البصرية والشعارات',
+            'تطوير مواقع وتطبيقات' => 'تطوير تطبيقات الويب والأنظمة',
+            'تحليلات ولوحات بيانات' => 'ربط البرمجيات وأتمتة الأعمال',
+            'كتابة وإعداد محتوى' => 'كتابة المحتوى الإعلاني والبيعي',
+        ];
+
+        return $categoryMap[$category] ?? $category;
+    }
+
     private function briefData(array $validated): array
     {
         return [
             'targeted_freelancer_id' => $validated['targeted_freelancer_id'],
             'title' => $validated['title'],
-            'category' => $validated['category'],
+            'category' => $this->normalizeCategory($validated['category']),
             'provider_type' => $validated['provider_type'],
             'description' => strip_tags((string) $validated['description']),
         ];

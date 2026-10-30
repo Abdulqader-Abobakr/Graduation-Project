@@ -101,10 +101,10 @@ class ProjectController extends Controller
                     $freelancerWallet->increment('available_balance', $amount);
                 });
 
-                return back()->with('success', 'تم قبول التسليم بنجاح، وجميع تسليمات المشروع مكتملة. تم تحويل المبلغ للرصيد المتاح للمستقل.');
+                return back()->with('success', 'تم قبول التسليم بنجاح، وجميع تسليمات المشروع مكتملة. تم تحويل المبلغ للرصيد المتاح للخبير.');
             }
 
-            return back()->with('success', 'تم قبول التسليم بنجاح، وتم إتاحة التسليم التالي للمستقل (إن وجد).');
+            return back()->with('success', 'تم قبول التسليم بنجاح، وتم إتاحة التسليم التالي للخبير (إن وجد).');
         }
 
         return back();

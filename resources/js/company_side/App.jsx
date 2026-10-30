@@ -53,7 +53,9 @@ export default function App({
         return 'explore';
     }, [url, workspaceProject, conversation]);
 
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => (
+        typeof window === 'undefined' || window.innerWidth >= 768
+    ));
     const [isNavigating, setIsNavigating] = useState(false);
     const [search, setSearch] = useState('');
     const [activeFilter, setActiveFilter] = useState('all');
@@ -279,11 +281,19 @@ export default function App({
     };
 
     return (
-        <div dir="rtl" className="flex h-screen bg-gray-50 font-sans">
+        <div dir="rtl" className="relative flex h-dvh min-h-screen bg-gray-50 font-sans">
             {isNavigating && <div className="fixed inset-x-0 top-0 z-100 h-0.5 bg-[#ffb548] animate-pulse" />}
+            {isSidebarOpen && (
+                <button
+                    type="button"
+                    aria-label="إغلاق القائمة"
+                    onClick={() => setIsSidebarOpen(false)}
+                    className="fixed inset-0 z-40 bg-slate-950/40 md:hidden"
+                />
+            )}
             <Sidebar activePage={activePage === 'workspace' ? 'projects' : activePage} isSidebarOpen={isSidebarOpen} />
 
-            <main className="flex-1 flex flex-col overflow-hidden bg-gray-50">
+            <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-gray-50">
                 <Header
                     pageTitle={pageTitle}
                     onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -297,7 +307,7 @@ export default function App({
                     onFilterChange={setActiveFilter}
                 />
 
-                <div ref={mainContentRef} className={`flex-1 ${activePage === 'chat' && conversation ? 'flex flex-col min-h-0 overflow-hidden p-3 sm:p-5 w-full h-full' : 'overflow-y-auto p-8 max-w-7xl mx-auto w-full'}`}>
+                <div ref={mainContentRef} className={`min-w-0 flex-1 ${activePage === 'chat' && conversation ? 'flex flex-col min-h-0 overflow-hidden p-3 sm:p-5 w-full h-full' : 'overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full'}`}>
                     {activePage === 'requests' && (
                         <MyRequestsPage
                             requests={requestsList}
@@ -350,7 +360,7 @@ export default function App({
                 }`}
             >
                 {flash.success && (
-                    <div className="bg-white border border-emerald-200 shadow-xl shadow-emerald-900/10 rounded-2xl p-4 pe-12 flex items-center gap-3 relative min-w-[320px]">
+                    <div className="w-[calc(100vw-2rem)] max-w-md bg-white border border-emerald-200 shadow-xl shadow-emerald-900/10 rounded-2xl p-4 pe-12 flex items-center gap-3 relative">
                         <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
                             <CheckCircle2 size={20} />
                         </div>

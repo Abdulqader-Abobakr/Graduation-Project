@@ -89,7 +89,7 @@ export default function MyProjects({
         </header>
 
         {/* Quick Metrics / Interactive KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <KpiCard
             title="مشاريع نشطة"
             count={stats.active}

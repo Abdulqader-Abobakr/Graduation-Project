@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 
 export default function CreateRequestModal({ isOpen, onClose, onSubmit, freelancers = [], request = null, fixedFreelancer = null }) {
     const [title, setTitle] = useState('');
-    const [category, setCategory] = useState('تسويق رقمي');
+    const [category, setCategory] = useState('تطوير المتاجر الإلكترونية');
 
     const [providerType, setProviderType] = useState('general');
     const [specificPerson, setSpecificPerson] = useState('');
@@ -12,18 +12,42 @@ export default function CreateRequestModal({ isOpen, onClose, onSubmit, freelanc
     const [errors, setErrors] = useState({});
 
     const categoryLabels = {
-        digital_marketing: 'تسويق رقمي',
-        branding: 'تصميم وهويات بصرية',
-        dev: 'تطوير مواقع وتطبيقات',
-        analytics: 'تحليلات ولوحات بيانات',
-        content: 'كتابة وإعداد محتوى',
+        digital_marketing: 'إدارة الحملات الإعلانية الممولة',
+        branding: 'تصميم الهوية البصرية والشعارات',
+        dev: 'تطوير تطبيقات الويب والأنظمة',
+        analytics: 'ربط البرمجيات وأتمتة الأعمال',
+        content: 'كتابة المحتوى الإعلاني والبيعي',
+        'تسويق رقمي': 'إدارة الحملات الإعلانية الممولة',
+        'تصميم وهويات بصرية': 'تصميم الهوية البصرية والشعارات',
+        'تطوير مواقع وتطبيقات': 'تطوير تطبيقات الويب والأنظمة',
+        'تحليلات ولوحات بيانات': 'ربط البرمجيات وأتمتة الأعمال',
+        'كتابة وإعداد محتوى': 'كتابة المحتوى الإعلاني والبيعي',
     };
+
+    const categoriesList = [
+        'تطوير المتاجر الإلكترونية',
+        'تطوير المواقع وصفحات الهبوط',
+        'تطوير تطبيقات الويب والأنظمة',
+        'ربط البرمجيات وأتمتة الأعمال',
+        'تحسين الأداء والأمان والصيانة',
+        'تصميم الهوية البصرية والشعارات',
+        'تصميم واجهات وتجربة المستخدم',
+        'تصميم التغليف وملصقات المنتجات',
+        'تصميم العروض والملفات التعريفية',
+        'إدارة الحملات الإعلانية الممولة',
+        'الخطط والاستراتيجيات التسويقية',
+        'تحسين محركات البحث والظهور المحلي',
+        'كتابة المحتوى الإعلاني والبيعي',
+        'إدارة التواصل الاجتماعي والمحتوى',
+        'تصميم منشورات التواصل الاجتماعي',
+        'مونتاج الفيديوهات والرسوم',
+    ];
 
     useEffect(() => {
         if (!isOpen) return;
 
         setTitle(request?.title || '');
-        setCategory(categoryLabels[request?.category] || request?.category || 'تسويق رقمي');
+        setCategory(categoryLabels[request?.category] || request?.category || 'تطوير المتاجر الإلكترونية');
         setProviderType(fixedFreelancer || request?.providerType === 'specific' ? 'specific' : 'general');
         setTargetedFreelancerId(fixedFreelancer?.id || request?.targetedFreelancerId || '');
         setSpecificPerson(fixedFreelancer?.name || request?.targetedFreelancer || '');
@@ -120,17 +144,17 @@ export default function CreateRequestModal({ isOpen, onClose, onSubmit, freelanc
 
                     {/* Category */}
                     <div>
-                        <label className="block text-sm font-bold text-[#28251d] mb-2">المجال</label>
+                        <label className="block text-sm font-bold text-[#28251d] mb-2">المجال / نوع الخدمة</label>
                         <select
                             value={category}
                             onChange={(e) => setCategory(e.target.value)}
-                            className="w-full px-4 py-3 rounded-xl border border-[#d4d1ca] focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all text-sm bg-white"
+                            className="w-full px-4 py-3 rounded-xl border border-[#d4d1ca] focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none transition-all text-sm bg-white font-medium"
                         >
-                            <option value="تسويق رقمي">تسويق رقمي</option>
-                            <option value="تصميم وهويات بصرية">تصميم وهويات بصرية</option>
-                            <option value="تطوير مواقع وتطبيقات">تطوير مواقع وتطبيقات</option>
-                            <option value="تحليلات ولوحات بيانات">تحليلات ولوحات بيانات</option>
-                            <option value="كتابة وإعداد محتوى">كتابة وإعداد محتوى</option>
+                            {categoriesList.map((cat) => (
+                                <option key={cat} value={cat}>
+                                    {cat}
+                                </option>
+                            ))}
                         </select>
                     </div>
 

@@ -166,7 +166,7 @@ export default function ProjectWorkspace({ pageTitle, project }) {
     <div className="p-4 sm:p-6 md:p-8 pb-24 overflow-y-auto h-full bg-[#fcfcfd]" dir="rtl">
       <div className="max-w-6xl mx-auto text-start space-y-6">
         {/* Navigation Action */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center sm:gap-4">
           <Link
             href="/freelancer/projects"
             className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 transition-colors w-fit text-xs sm:text-sm font-semibold group cursor-pointer"
@@ -216,7 +216,7 @@ export default function ProjectWorkspace({ pageTitle, project }) {
           }`}
         >
           {flash.success && (
-            <div className="bg-white border border-green-200 shadow-xl shadow-green-900/10 rounded-2xl p-4 pe-12 flex items-center gap-3 relative min-w-[320px]">
+            <div className="w-[calc(100vw-2rem)] max-w-md bg-white border border-green-200 shadow-xl shadow-green-900/10 rounded-2xl p-4 pe-12 flex items-center gap-3 relative">
               <div className="w-9 h-9 rounded-full bg-green-50 text-green-600 flex items-center justify-center shrink-0">
                 <CheckCircle2 size={20} />
               </div>

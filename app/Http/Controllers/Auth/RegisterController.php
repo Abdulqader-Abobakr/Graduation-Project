@@ -44,6 +44,11 @@ class RegisterController extends Controller
             $request->merge(['sector' => trim((string) $request->input('customSector'))]);
         }
 
+        if ($request->input('role') === 'freelancer' && empty($request->input('sector')) && !empty($request->input('marketing_specialties'))) {
+            $specialties = (array) $request->input('marketing_specialties');
+            $request->merge(['sector' => (string) ($specialties[0] ?? 'خدمات ريادة الأعمال')]);
+        }
+
         // Fast-fail if email already exists in local DB
         $email = strtolower(trim((string) $request->input('email')));
         if (User::whereRaw('LOWER(email) = ?', [$email])->exists()) {
@@ -52,24 +57,10 @@ class RegisterController extends Controller
             ])->withInput();
         }
 
-        $validated = $request->validate([
+        $isFreelancer = $request->input('role') === 'freelancer';
+
+        $rules = [
             'role' => 'required|in:freelancer,company',
-            'name' => [
-                'required_if:role,freelancer',
-                'nullable',
-                'string',
-                'min:2',
-                'max:60',
-                'regex:/^[\p{Arabic}\s]+$/u',
-            ],
-            'companyName' => [
-                'required_if:role,company',
-                'nullable',
-                'string',
-                'min:2',
-                'max:100',
-                'regex:/^[\p{Arabic}0-9\s]+$/u',
-            ],
             'email' => [
                 'required',
                 'string',
@@ -80,7 +71,7 @@ class RegisterController extends Controller
             'phone' => [
                 'required',
                 'string',
-                'regex:/^7\d{8}$/',
+                'regex:/^(77|71|73)\d{7}$/',
             ],
             'city' => [
                 'required',
@@ -88,13 +79,6 @@ class RegisterController extends Controller
                 'min:2',
                 'max:50',
                 'regex:/^[\p{Arabic}\s]+$/u',
-            ],
-            'sector' => [
-                'required',
-                'string',
-                'min:2',
-                'max:100',
-                'regex:/^[\p{Arabic}0-9\s\-–]+$/u',
             ],
             'idDocument' => 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
             'password' => [
@@ -105,14 +89,78 @@ class RegisterController extends Controller
                 'confirmed',
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};\':"\\\\|,.<>\/?]).{8,}$/',
             ],
-        ], [
+        ];
+
+        if ($isFreelancer) {
+            $rules['name'] = [
+                'required',
+                'string',
+                'min:2',
+                'max:60',
+                'regex:/^[\p{Arabic}\s]+$/u',
+            ];
+            $rules['job_title'] = [
+                'required',
+                'string',
+                'min:2',
+                'max:100',
+                'regex:/^[\x{0600}-\x{06FF}a-zA-Z0-9\s\.\,\-\/\&]+$/u',
+            ];
+            $rules['bio'] = [
+                'nullable',
+                'string',
+                'max:1000',
+            ];
+            $rules['marketing_specialties'] = [
+                'required',
+                'array',
+                'min:1',
+            ];
+            $rules['marketing_specialties.*'] = [
+                'required',
+                'string',
+                'min:2',
+                'max:70',
+                'regex:/^[\x{0600}-\x{06FF}a-zA-Z0-9\s\.\,\-\/\&]+$/u',
+            ];
+            $rules['experienced_sectors'] = [
+                'required',
+                'array',
+                'min:1',
+            ];
+            $rules['experienced_sectors.*'] = [
+                'required',
+                'string',
+                'min:2',
+                'max:70',
+                'regex:/^[\x{0600}-\x{06FF}a-zA-Z0-9\s\.\,\-\/\&]+$/u',
+            ];
+            $rules['sector'] = ['nullable', 'string', 'max:100'];
+        } else {
+            $rules['companyName'] = [
+                'required',
+                'string',
+                'min:2',
+                'max:100',
+                'regex:/^[\p{Arabic}0-9\s]+$/u',
+            ];
+            $rules['sector'] = [
+                'required',
+                'string',
+                'min:2',
+                'max:100',
+                'regex:/^[\p{Arabic}0-9\s\-–]+$/u',
+            ];
+        }
+
+        $validated = $request->validate($rules, [
             'role.required' => 'نوع الحساب مطلوب.',
             'role.in' => 'نوع الحساب المحدد غير صالح.',
-            'name.required_if' => 'اسم الخبير مطلوب.',
+            'name.required' => 'اسم الخبير مطلوب.',
             'name.min' => 'الاسم يجب أن يتكون من حرفين على الأقل.',
             'name.max' => 'الاسم طويل جداً.',
             'name.regex' => 'الاسم يجب أن يحتوي على أحرف عربية فقط.',
-            'companyName.required_if' => 'اسم رائد الأعمال أو المشروع/الشركة مطلوب.',
+            'companyName.required' => 'اسم رائد الأعمال أو المشروع/الشركة مطلوب.',
             'companyName.min' => 'الاسم يجب أن يتكون من حرفين على الأقل.',
             'companyName.max' => 'الاسم طويل جداً.',
             'companyName.regex' => 'الاسم يجب أن يحتوي على أحرف عربية وأرقام فقط.',
@@ -120,10 +168,20 @@ class RegisterController extends Controller
             'email.email' => 'البريد الإلكتروني غير صحيح.',
             'email.regex' => 'صيغة البريد الإلكتروني غير صحيحة.',
             'phone.required' => 'رقم الهاتف مطلوب.',
-            'phone.regex' => 'رقم الهاتف يجب أن يبدأ بـ 7 ويتكون من 9 أرقام (مثال: 771234567).',
+            'phone.regex' => 'رقم الهاتف يجب أن يبدأ بـ 77 أو 71 أو 73 ويتكون من 9 أرقام.',
             'city.required' => 'المدينة مطلوبة.',
             'city.min' => 'اسم المدينة يجب أن يتكون من حرفين على الأقل.',
             'city.regex' => 'اسم المدينة يجب أن يحتوي على أحرف عربية فقط.',
+            'job_title.required' => 'المسمى الوظيفي مطلوب.',
+            'job_title.min' => 'المسمى الوظيفي يجب أن يتكون من حرفين على الأقل.',
+            'job_title.regex' => 'المسمى الوظيفي يحتوي على رموز غير مسموح بها.',
+            'bio.max' => 'النبذة التعريفية يجب ألا تتجاوز 1000 حرف.',
+            'marketing_specialties.required' => 'يرجى اختيار أو إضافة مهارة أو خدمة واحدة على الأقل.',
+            'marketing_specialties.min' => 'يرجى اختيار أو إضافة مهارة أو خدمة واحدة على الأقل.',
+            'marketing_specialties.*.regex' => 'إحدى المهارات/الخدمات تحتوي على رموز غير مسموح بها.',
+            'experienced_sectors.required' => 'يرجى اختيار أو إضافة قطاع أو مجال خبرة واحد على الأقل.',
+            'experienced_sectors.min' => 'يرجى اختيار أو إضافة قطاع أو مجال خبرة واحد على الأقل.',
+            'experienced_sectors.*.regex' => 'أحد القطاعات يحتوي على رموز غير مسموح بها.',
             'sector.required' => 'المجال / القطاع مطلوب.',
             'sector.min' => 'المجال يجب أن يتكون من حرفين على الأقل.',
             'sector.regex' => 'المجال يجب أن يحتوي على أحرف عربية فقط.',
@@ -191,9 +249,22 @@ class RegisterController extends Controller
             );
 
             if ($validated['role'] === 'freelancer') {
-                Freelancer::firstOrCreate(
+                $specialties = !empty($validated['marketing_specialties'])
+                    ? array_values(array_unique($validated['marketing_specialties']))
+                    : [($validated['sector'] ?? 'خدمات ريادة الأعمال')];
+
+                $sectors = !empty($validated['experienced_sectors'])
+                    ? array_values(array_unique($validated['experienced_sectors']))
+                    : [];
+
+                Freelancer::updateOrCreate(
                     ['user_id' => $user->id],
-                    ['marketing_specialties' => [$validated['sector']]]
+                    [
+                        'job_title' => $validated['job_title'] ?? null,
+                        'bio' => $validated['bio'] ?? null,
+                        'marketing_specialties' => $specialties,
+                        'experienced_sectors' => $sectors,
+                    ]
                 );
             } else {
                 ClientCompany::updateOrCreate(

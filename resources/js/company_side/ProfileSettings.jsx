@@ -212,7 +212,7 @@ export default function ProfileSettings({ pageTitle, user = {} }) {
                     onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
                     search={search}
                     setSearch={setSearch}
-                    searchPlaceholder="ابحث عن مستقل أو تخصص أو خبرة..."
+                    searchPlaceholder="ابحث عن خبير أو تخصص أو خبرة..."
                     onSearchSubmit={handleHeaderSearch}
                 />
 
@@ -226,7 +226,7 @@ export default function ProfileSettings({ pageTitle, user = {} }) {
                         }`}
                     >
                         {toastMessage && (
-                            <div className="bg-white border border-emerald-200 shadow-2xl shadow-emerald-900/15 rounded-2xl p-4 pr-5 pl-12 flex items-center gap-4 relative min-w-[320px] max-w-md">
+                            <div className="w-[calc(100vw-2rem)] max-w-md bg-white border border-emerald-200 shadow-2xl shadow-emerald-900/15 rounded-2xl p-4 pr-5 pl-12 flex items-center gap-4 relative">
                                 <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
                                     <CheckCircle2 size={24} className="text-emerald-600" />
                                 </div>

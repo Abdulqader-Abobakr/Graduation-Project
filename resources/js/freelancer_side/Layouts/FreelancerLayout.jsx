@@ -7,7 +7,6 @@ import {
   Wallet,
   ChevronLeft,
   Search,
-  Briefcase,
   MessageSquare,
   Menu,
   Settings,
@@ -71,15 +70,6 @@ const pageFilters = {
       { value: 'year', label: 'هذا العام' },
     ],
   },
-  services: {
-    label: 'عرض الأقسام',
-    options: [
-      { value: 'all', label: 'الكل' },
-      { value: 'portfolio', label: 'معرض الأعمال' },
-      { value: 'specialties', label: 'التخصصات والقطاعات' },
-      { value: 'availability', label: 'حالة التواجد' },
-    ],
-  },
   chat: {
     label: 'المحادثات',
     options: [
@@ -94,7 +84,6 @@ const resolvePageKey = (path, isChatWithConversation) => {
   if (path.startsWith('/freelancer/projects/') && path !== '/freelancer/projects') return 'workspace';
   if (path.startsWith('/freelancer/projects')) return 'projects';
   if (path.startsWith('/freelancer/proposals')) return 'proposals';
-  if (path.startsWith('/freelancer/services')) return 'services';
   if (path.startsWith('/freelancer/earnings')) return 'earnings';
   if (path.startsWith('/freelancer/chat')) {
     if (isChatWithConversation) return 'chat_open';
@@ -108,7 +97,6 @@ const getNavItems = (chatBadge) => [
   { icon: <ClipboardList size={20} />, label: 'العروض والطلبات', href: '/freelancer/proposals' },
   { icon: <FolderOpen size={20} />, label: 'مشاريعي', href: '/freelancer/projects' },
   { icon: <MessageSquare size={20} />, label: 'المحادثات', href: '/freelancer/chat', badge: chatBadge },
-  { icon: <Briefcase size={20} />, label: 'خدماتي', href: '/freelancer/services' },
   { icon: <Wallet size={20} />, label: 'الأرباح', href: '/freelancer/earnings' },
 ];
 
@@ -147,7 +135,9 @@ export default function FreelancerLayout({ children }) {
   const isChatWithConversation = isChatPage && (Boolean(props.conversation) || Boolean(currentUrlObj.searchParams.get('conversation')) || currentPath !== '/freelancer/chat');
   const chatBadge = !isChatWithConversation && props.unreadChatCount > 0 ? props.unreadChatCount : null;
   const navItems = getNavItems(chatBadge);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => (
+    typeof window !== 'undefined' && window.innerWidth < 768
+  ));
   const [isNavigating, setIsNavigating] = useState(false);
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
@@ -196,11 +186,9 @@ export default function FreelancerLayout({ children }) {
       ? 'ابحث عن مشروع أو عميل...'
       : currentPath.startsWith('/freelancer/proposals')
         ? 'ابحث عن عرض أو طلب أو عميل...'
-        : currentPath.startsWith('/freelancer/services')
-          ? 'ابحث عن خدمة أو تخصص...'
-          : currentPath.startsWith('/freelancer/earnings')
-            ? 'ابحث في المعاملات أو الأرباح...'
-            : 'ابحث عن طلب متاح أو عميل...';
+        : currentPath.startsWith('/freelancer/earnings')
+          ? 'ابحث في المعاملات أو الأرباح...'
+          : 'ابحث عن طلب متاح أو عميل...';
 
   const handleSearch = (event) => {
     event.preventDefault();
@@ -241,11 +229,19 @@ export default function FreelancerLayout({ children }) {
   }, []);
 
   return (
-    <div dir="rtl" className="flex h-screen bg-gray-50 font-sans">
+    <div dir="rtl" className="relative flex h-dvh min-h-screen bg-gray-50 font-sans">
       {isNavigating && <div className="fixed inset-x-0 top-0 z-100 h-0.5 bg-[#ffb548] animate-pulse" />}
+      {!isSidebarCollapsed && (
+        <button
+          type="button"
+          aria-label="إغلاق القائمة"
+          onClick={() => setIsSidebarCollapsed(true)}
+          className="fixed inset-0 z-40 bg-slate-950/40 md:hidden"
+        />
+      )}
       {/* Sidebar (ON THE RIGHT SIDE IN RTL) */}
       <aside
-        className={`${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-primary text-white border-none flex flex-col transition-all duration-300 relative z-50 shrink-0`}
+        className={`${isSidebarCollapsed ? 'w-20 max-md:translate-x-full' : 'w-64 translate-x-0'} max-md:fixed max-md:inset-y-0 max-md:right-0 max-md:z-50 max-md:w-64 bg-primary text-white border-none flex flex-col transition-all duration-300 relative z-50 shrink-0`}
       >
         {/* Logo */}
         <div className="px-4 pt-3 pb-2 flex items-center justify-center transition-all duration-300">
@@ -324,9 +320,9 @@ export default function FreelancerLayout({ children }) {
             </button>
           </div>
 
-          <div className="hidden w-full max-w-3xl items-center gap-2 md:flex">
+          <div className="flex w-full max-w-3xl flex-wrap items-center gap-2">
             {/* Search Form */}
-            <form onSubmit={handleSearch} className="flex min-w-0 flex-1 flex-row-reverse relative">
+            <form onSubmit={handleSearch} className="relative flex min-w-0 flex-1 basis-full flex-row-reverse sm:basis-auto">
               <input
                 type="text"
                 value={search}
@@ -429,7 +425,7 @@ export default function FreelancerLayout({ children }) {
             isChatWithConversation
               ? 'flex flex-col min-h-0 overflow-hidden p-3 sm:p-5 w-full h-full'
               : isChatPage
-                ? 'overflow-y-auto p-6 w-full h-full'
+                ? 'overflow-y-auto p-4 sm:p-6 w-full h-full'
                 : 'overflow-y-auto'
           }`}
         >

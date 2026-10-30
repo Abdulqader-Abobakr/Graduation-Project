@@ -100,7 +100,7 @@ const Profile = ({ pageTitle, user = {}, company = {} }) => {
                     onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
                     search={search}
                     setSearch={setSearch}
-                    searchPlaceholder="ابحث عن مستقل أو تخصص أو خبرة..."
+                    searchPlaceholder="ابحث عن خبير أو تخصص أو خبرة..."
                     onSearchSubmit={handleHeaderSearch}
                 />
 

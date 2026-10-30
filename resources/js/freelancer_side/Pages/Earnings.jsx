@@ -160,7 +160,7 @@ const Earnings = ({
   };
 
   return (
-    <div className="p-8 pb-20 overflow-y-auto h-full bg-[#fcfcfd]" dir="rtl">
+    <div className="p-4 sm:p-6 lg:p-8 pb-20 overflow-y-auto h-full bg-[#fcfcfd]" dir="rtl">
       {/* Floating Success Toast */}
       <div 
         className={`fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] transition-all duration-500 ease-out ${
@@ -270,7 +270,7 @@ const Earnings = ({
             <table className="w-full text-start border-collapse">
               <thead className="bg-slate-50/50 border-b border-slate-100 text-start">
                 <tr>
-                  <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest text-start">التاريخ</th>
+                  <th className="px-3 py-4 sm:px-5 lg:px-8 lg:py-5 text-xs font-bold text-slate-400 uppercase tracking-widest text-start">التاريخ</th>
                   <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest text-start">الوصف / المشروع</th>
                   <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest text-start">العميل</th>
                   <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest text-start">المبلغ</th>

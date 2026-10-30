@@ -210,7 +210,7 @@ export default function PaymentPage({ project }) {
                     <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl">
                         <AlertCircle size={18} className="text-blue-600 shrink-0 mt-0.5" />
                         <p className="text-xs text-blue-800 leading-relaxed">
-                            <strong>ملاحظة:</strong> بمجرد رفع الإيصال، سيتم تفعيل المشروع تلقائياً وسيتمكن المستقل من البدء في العمل.
+                            <strong>ملاحظة:</strong> بمجرد رفع الإيصال، سيتم تفعيل المشروع تلقائياً وسيتمكن الخبير من البدء في العمل.
                         </p>
                     </div>
 
