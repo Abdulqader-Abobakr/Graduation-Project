@@ -39,18 +39,45 @@ class DashboardController extends Controller
                        FROM sila_p.transactions t 
                        JOIN sila_p.projects p ON t.project_id = p.id 
                       WHERE p.freelancer_id = :uid2 
-                        AND t.verification_status = 'verified' 
-                        AND t.created_at >= :start 
-                        AND t.created_at < :end) as monthly_earnings,
+                        AND p.status = 'completed'
+                        AND t.verification_status = 'verified'
+                        AND (
+                            (SELECT COUNT(*) FROM sila_p.deliverables d WHERE d.project_id = p.id) = 0
+                            OR (SELECT COUNT(*) FROM sila_p.deliverables d WHERE d.project_id = p.id AND (d.status IS NULL OR d.status != 'approved')) = 0
+                        )
+                        AND COALESCE(
+                            (SELECT MAX(d.updated_at) FROM sila_p.deliverables d WHERE d.project_id = p.id AND d.status = 'approved'),
+                            p.updated_at
+                        ) >= :start 
+                        AND COALESCE(
+                            (SELECT MAX(d.updated_at) FROM sila_p.deliverables d WHERE d.project_id = p.id AND d.status = 'approved'),
+                            p.updated_at
+                        ) < :end) as monthly_earnings,
                     (SELECT COALESCE(SUM(unread_count), 0) FROM sila_p.conversations WHERE freelancer_id = :uid3) as unread_messages,
                     (SELECT COUNT(rating) FROM sila_p.projects WHERE freelancer_id = :uid4 AND status = 'completed' AND rating IS NOT NULL) as ratings_count,
-                    (SELECT ROUND(AVG(rating), 1) FROM sila_p.projects WHERE freelancer_id = :uid5 AND status = 'completed' AND rating IS NOT NULL) as rating_average
+                    (SELECT ROUND(AVG(rating), 1) FROM sila_p.projects WHERE freelancer_id = :uid5 AND status = 'completed' AND rating IS NOT NULL) as rating_average,
+                    (SELECT COUNT(*) FROM sila_p.projects WHERE freelancer_id = :uid6) as total_projects,
+                    (SELECT COALESCE(ROUND(AVG(
+                        CASE 
+                            WHEN p.status = 'completed' THEN 100 
+                            ELSE COALESCE(
+                                (SELECT ROUND((COUNT(*) FILTER (WHERE d.status = 'approved')::numeric / NULLIF(COUNT(*), 0)) * 100) 
+                                 FROM sila_p.deliverables d 
+                                 WHERE d.project_id = p.id), 
+                                0
+                            )
+                        END
+                     )), 0)
+                     FROM sila_p.projects p 
+                     WHERE p.freelancer_id = :uid7) as completion_rate
             ", [
                 'uid1'  => $user->id,
                 'uid2'  => $user->id,
                 'uid3'  => $user->id,
                 'uid4'  => $user->id,
                 'uid5'  => $user->id,
+                'uid6'  => $user->id,
+                'uid7'  => $user->id,
                 'start' => $startOfMonth,
                 'end'   => $startOfNextMonth,
             ]);
@@ -61,6 +88,8 @@ class DashboardController extends Controller
                 'unread_messages'  => (int) ($row->unread_messages ?? 0),
                 'ratings_count'    => (int) ($row->ratings_count ?? 0),
                 'rating_average'   => $row && $row->rating_average !== null ? (float) $row->rating_average : null,
+                'total_projects'   => (int) ($row->total_projects ?? 0),
+                'completion_rate'  => (int) ($row->completion_rate ?? 0),
             ];
 
             Cache::put($cacheKey, $stats, 30);
@@ -71,6 +100,24 @@ class DashboardController extends Controller
             ? (float) $stats['rating_average']
             : null;
 
+        $completionRate = (int) ($stats['completion_rate'] ?? 0);
+        $totalProjects = (int) ($stats['total_projects'] ?? 0);
+
+        if ($totalProjects === 0) {
+            $completionRate = 0;
+            $completionRateLabel = 'لا توجد مشاريع';
+        } elseif ($completionRate === 0) {
+            $completionRateLabel = 'لم يبدأ بعد';
+        } elseif ($completionRate >= 90) {
+            $completionRateLabel = 'ممتاز';
+        } elseif ($completionRate >= 75) {
+            $completionRateLabel = 'جيد جداً';
+        } elseif ($completionRate >= 50) {
+            $completionRateLabel = 'جيد';
+        } else {
+            $completionRateLabel = 'قيد الإنجاز';
+        }
+
         $statsData = [
             'activeProjects'      => (string) ($stats['active_projects'] ?? 0),
             'monthlyEarnings'     => number_format((float) ($stats['monthly_earnings'] ?? 0)),
@@ -78,7 +125,8 @@ class DashboardController extends Controller
             'rating'              => $ratingAverage !== null ? (string) $ratingAverage : null,
             'ratingAverage'       => $ratingAverage,
             'ratingsCount'        => $ratingsCount,
-            'completionRate'      => '95',
+            'completionRate'      => (string) $completionRate,
+            'completionRateLabel' => $completionRateLabel,
             'unreadMessagesCount' => (int) ($stats['unread_messages'] ?? 0),
         ];
 

@@ -4,15 +4,19 @@ namespace App\Http\Controllers\Freelancer;
 
 use App\Http\Controllers\Company\BriefController;
 use App\Http\Controllers\Controller;
+use App\Mail\NewProposalMail;
 use App\Models\Project;
 use App\Models\Proposal;
 use App\Models\Conversation;
 use App\Models\Brief;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -275,6 +279,7 @@ class ProposalController extends Controller
             ->findOrFail($id);
 
         $project->update(['status' => 'active']);
+        Cache::forget("user_pending_orders_{$request->user()->id}");
         BriefController::invalidateBriefCaches((string) $project->client_id);
 
         return redirect()->back()->with('success', 'تم قبول الطلب وبدء العمل بنجاح.');
@@ -290,6 +295,7 @@ class ProposalController extends Controller
 
         if ($brief) {
             $brief->delete();
+            Cache::forget("user_pending_orders_{$request->user()->id}");
             BriefController::invalidateBriefCaches((string) $brief->client_id);
             return redirect()->back()->with('success', 'تم رفض الطلب.');
         }
@@ -298,6 +304,7 @@ class ProposalController extends Controller
             ->findOrFail($id);
 
         $project->update(['status' => 'canceled']);
+        Cache::forget("user_pending_orders_{$request->user()->id}");
         BriefController::invalidateBriefCaches((string) $project->client_id);
 
         return redirect()->back()->with('success', 'تم رفض الطلب.');
@@ -489,9 +496,45 @@ class ProposalController extends Controller
         }
 
         BriefController::invalidateBriefCaches($chat->client_id ? (string) $chat->client_id : null);
+        if ($chat->client_id) {
+            Cache::forget("company_pending_proposals_{$chat->client_id}");
+        }
+
+        $this->notifyClientOfProposal($proposal, $chat, $user);
 
         return redirect()->route('freelancer.proposals', ['tab' => 'sent'])
             ->with('success', 'تم إرسال العرض للعميل بنجاح!');
+    }
+
+    private function notifyClientOfProposal(Proposal $proposal, Conversation $chat, User $freelancer): void
+    {
+        try {
+            $client = User::find($chat->client_id);
+            if (!$client) {
+                return;
+            }
+
+            $allowsEmail = (bool) ($client->email_notifications ?? true);
+            if (!$allowsEmail || empty($client->email)) {
+                return;
+            }
+
+            $mailable = new NewProposalMail($proposal, $client, $freelancer);
+            $mailer = Mail::to($client->email);
+
+            if (!empty($client->alternative_email) && filter_var($client->alternative_email, FILTER_VALIDATE_EMAIL)) {
+                $mailer->cc($client->alternative_email);
+            }
+
+            $mailer->send($mailable);
+            Log::info("Proposal email notification sent successfully to client {$client->email} for proposal {$proposal->id}");
+        } catch (\Throwable $e) {
+            Log::error('Failed to send proposal email notification to client', [
+                'proposal_id' => $proposal->id,
+                'client_id'   => $chat->client_id,
+                'error'       => $e->getMessage(),
+            ]);
+        }
     }
 
     private function pendingProposal(Request $request, string $id): Proposal

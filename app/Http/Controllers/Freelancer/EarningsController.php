@@ -125,7 +125,7 @@ class EarningsController extends Controller
         $dailyData   = [];
 
         foreach ($projectPayments as $tx) {
-            if (! $tx->created_at) {
+            if (! $tx->created_at || ($tx->project_status ?? '') !== 'completed') {
                 continue;
             }
             if ($tx->created_at >= $startOfYear && $tx->created_at < $startOfNextYear) {

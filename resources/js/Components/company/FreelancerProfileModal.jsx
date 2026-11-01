@@ -139,6 +139,7 @@ export default function FreelancerProfileModal({
     freelancer,
     onClose,
     onRequestService,
+    onProfileLoaded,
 }) {
     const [profile, setProfile] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -175,19 +176,16 @@ export default function FreelancerProfileModal({
             ? (freelancer.id || freelancer.freelancer_id || freelancer.userId)
             : freelancer;
 
-        // If freelancer is passed as an object, populate immediately
-        if (typeof freelancer === 'object' && freelancer !== null) {
+        const isObject = typeof freelancer === 'object' && freelancer !== null;
+
+        // If freelancer is passed as an object, populate immediately to prevent layout shifts/flicker
+        if (isObject) {
             setProfile(freelancer);
-            // If portfolios array is missing, load in background
-            if (!Array.isArray(freelancer.portfolios) && freelancerId) {
-                fetchFreelancerData(freelancerId, false);
-            }
-            return;
         }
 
-        // If freelancer is passed as a string ID
-        if (typeof freelancer === 'string') {
-            fetchFreelancerData(freelancer, true);
+        // Always fetch fresh profile data from server so new portfolios or updates appear immediately without manual page refresh
+        if (freelancerId) {
+            fetchFreelancerData(freelancerId, !isObject);
         }
     }, [isOpen, freelancer]);
 
@@ -195,7 +193,8 @@ export default function FreelancerProfileModal({
         if (showSpinner) setIsLoading(true);
         setError(null);
         try {
-            const res = await fetch(`/company/freelancers/${freelancerId}`, {
+            const res = await fetch(`/company/freelancers/${freelancerId}?_t=${Date.now()}`, {
+                cache: 'no-store',
                 headers: {
                     Accept: 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
@@ -206,6 +205,9 @@ export default function FreelancerProfileModal({
             }
             const data = await res.json();
             setProfile(data);
+            if (onProfileLoaded) {
+                onProfileLoaded(data);
+            }
         } catch (err) {
             if (showSpinner) {
                 setError(err.message || 'حدث خطأ أثناء تحميل الملف الشخصي');

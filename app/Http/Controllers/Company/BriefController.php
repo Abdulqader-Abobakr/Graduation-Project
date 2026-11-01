@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
+use App\Mail\NewDirectOrderMail;
 use App\Models\Brief;
 use App\Models\Conversation;
 use App\Models\Deliverable;
@@ -16,6 +17,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -167,12 +170,12 @@ class BriefController extends Controller
                     'u.avatar_path as user_avatar_path',
                     'u.city as user_city',
                     'u.created_at as user_created_at',
-                    DB::raw('(SELECT p.title FROM sila_p.portfolios p WHERE p.freelancer_id = sila_p.freelancers.id LIMIT 1) as first_portfolio_title'),
+                    DB::raw('(SELECT p.title FROM sila_p.portfolios p WHERE p.freelancer_id = sila_p.freelancers.id ORDER BY p.created_at DESC LIMIT 1) as first_portfolio_title'),
                     DB::raw("(SELECT COUNT(*) FROM sila_p.projects pr WHERE pr.freelancer_id = u.id AND pr.status = 'completed') as completed_projects_count"),
                     DB::raw("(SELECT COUNT(rating) FROM sila_p.projects pr WHERE pr.freelancer_id = u.id AND pr.status = 'completed' AND pr.rating IS NOT NULL) as ratings_count"),
                     DB::raw("(SELECT ROUND(AVG(rating), 1) FROM sila_p.projects pr WHERE pr.freelancer_id = u.id AND pr.status = 'completed' AND pr.rating IS NOT NULL) as rating_average"),
                 ])
-                ->with(['portfolios:id,freelancer_id,title,marketing_domain,images'])
+                ->with(['portfolios' => fn($q) => $q->select(['id', 'freelancer_id', 'title', 'marketing_domain', 'images', 'created_at'])->orderByDesc('created_at')])
                 ->orderByDesc('sila_p.freelancers.created_at')
                 ->get()
                 ->map(fn(Freelancer $freelancer) => [
@@ -221,12 +224,12 @@ class BriefController extends Controller
                 'u.avatar_path as user_avatar_path',
                 'u.city as user_city',
                 'u.created_at as user_created_at',
-                DB::raw('(SELECT p.title FROM sila_p.portfolios p WHERE p.freelancer_id = sila_p.freelancers.id LIMIT 1) as first_portfolio_title'),
+                DB::raw('(SELECT p.title FROM sila_p.portfolios p WHERE p.freelancer_id = sila_p.freelancers.id ORDER BY p.created_at DESC LIMIT 1) as first_portfolio_title'),
                 DB::raw("(SELECT COUNT(*) FROM sila_p.projects pr WHERE pr.freelancer_id = u.id AND pr.status = 'completed') as completed_projects_count"),
                 DB::raw("(SELECT COUNT(rating) FROM sila_p.projects pr WHERE pr.freelancer_id = u.id AND pr.status = 'completed' AND pr.rating IS NOT NULL) as ratings_count"),
                 DB::raw("(SELECT ROUND(AVG(rating), 1) FROM sila_p.projects pr WHERE pr.freelancer_id = u.id AND pr.status = 'completed' AND pr.rating IS NOT NULL) as rating_average"),
             ])
-            ->with(['portfolios:id,freelancer_id,title,marketing_domain,images'])
+            ->with(['portfolios' => fn($q) => $q->select(['id', 'freelancer_id', 'title', 'marketing_domain', 'images', 'created_at'])->orderByDesc('created_at')])
             ->first();
 
         if (! $freelancer) {
@@ -289,7 +292,8 @@ class BriefController extends Controller
         ];
 
         if ($request->wantsJson() || $request->ajax()) {
-            return response()->json($data);
+            return response()->json($data)
+                ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
         }
 
         return redirect()->route('company.dashboard', ['tab' => 'explore', 'freelancer' => $data['id']]);
@@ -302,6 +306,10 @@ class BriefController extends Controller
                 ->where('role', 'freelancer')
                 ->orderBy('user_name')
                 ->get(['id', 'user_name'])
+                ->map(fn($u) => [
+                    'id' => (string) $u->id,
+                    'user_name' => (string) $u->user_name,
+                ])
                 ->all();
         });
     }
@@ -489,7 +497,7 @@ class BriefController extends Controller
         $validated = $this->validatedBrief($request);
         $userId = (string) $request->user()->id;
 
-        Brief::create([
+        $brief = Brief::create([
             'client_id' => $userId,
             'targeted_freelancer_id' => $validated['targeted_freelancer_id'],
             'title' => $validated['title'],
@@ -501,7 +509,44 @@ class BriefController extends Controller
 
         self::invalidateBriefCaches($userId);
 
+        if (!empty($brief->targeted_freelancer_id)) {
+            Cache::forget("user_pending_orders_{$brief->targeted_freelancer_id}");
+            $this->notifyTargetedFreelancer($brief, $request->user());
+        }
+
         return redirect()->route('company.dashboard', ['tab' => 'requests']);
+    }
+
+    private function notifyTargetedFreelancer(Brief $brief, User $client): void
+    {
+        try {
+            $freelancerUser = User::find($brief->targeted_freelancer_id);
+            if (!$freelancerUser) {
+                return;
+            }
+
+            // Verify if freelancer has email notifications enabled in their settings
+            $allowsEmail = (bool) ($freelancerUser->email_notifications ?? true);
+            if (!$allowsEmail || empty($freelancerUser->email)) {
+                return;
+            }
+
+            $mailable = new NewDirectOrderMail($brief, $client, $freelancerUser);
+            $mailer = Mail::to($freelancerUser->email);
+
+            if (!empty($freelancerUser->alternative_email) && filter_var($freelancerUser->alternative_email, FILTER_VALIDATE_EMAIL)) {
+                $mailer->cc($freelancerUser->alternative_email);
+            }
+
+            $mailer->send($mailable);
+            Log::info("Direct order email notification sent successfully to freelancer {$freelancerUser->email} for brief {$brief->id}");
+        } catch (\Throwable $e) {
+            Log::error('Failed to send direct order email notification to freelancer', [
+                'brief_id' => $brief->id,
+                'freelancer_id' => $brief->targeted_freelancer_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     public function update(Request $request, string $id): RedirectResponse
@@ -546,7 +591,7 @@ class BriefController extends Controller
 
         if ($validated['provider_type'] === 'specific') {
             $targetId = (string) ($validated['targeted_freelancer_id'] ?? '');
-            $inCachedList = collect($this->freelancersData())->contains(fn($fl) => (string) ($fl->id ?? $fl['id'] ?? '') === $targetId);
+            $inCachedList = collect($this->freelancersData())->contains(fn($fl) => (string) (is_array($fl) ? ($fl['id'] ?? '') : ($fl->id ?? '')) === $targetId);
             abort_unless(
                 $targetId !== '' && ($inCachedList || User::whereKey($targetId)->where('role', 'freelancer')->exists()),
                 422,

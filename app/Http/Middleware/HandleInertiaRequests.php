@@ -69,7 +69,7 @@ class HandleInertiaRequests extends Middleware
                 'success' => $request->session()->pull('success'),
                 'error'   => $request->session()->pull('error'),
             ],
-            'unreadChatCount' => $user ? Cache::remember("user_unread_chat_{$user->id}", 30, function () use ($user) {
+            'unreadChatCount' => fn () => $user ? Cache::remember("user_unread_chat_{$user->id}", 60, function () use ($user) {
                 return ($user->role === 'client_company' || $user->role === 'company')
                     ? Conversation::where('client_id', $user->id)
                         ->whereRaw('(SELECT m.sender_id FROM sila_p.messages m WHERE m.conversation_id = sila_p.conversations.id ORDER BY m.created_at DESC LIMIT 1) = sila_p.conversations.freelancer_id AND (sila_p.conversations.client_read_at IS NULL OR sila_p.conversations.client_read_at < (SELECT m.created_at FROM sila_p.messages m WHERE m.conversation_id = sila_p.conversations.id ORDER BY m.created_at DESC LIMIT 1))')

@@ -10,6 +10,7 @@ use App\Models\Freelancer;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 
 class ProjectController extends Controller
@@ -112,6 +113,10 @@ class ProjectController extends Controller
             $deliverable->status = 'approved';
             $deliverable->save();
 
+            if ($project->freelancer_id) {
+                \Illuminate\Support\Facades\Cache::forget("freelancer_dashboard_stats_{$project->freelancer_id}");
+            }
+
             $totalDeliverables = $project->deliverables()->count();
             $approvedDeliverables = $project->deliverables()->where('status', 'approved')->count();
 
@@ -131,6 +136,10 @@ class ProjectController extends Controller
                     $freelancerWallet->decrement('pending_balance', $amount);
                     $freelancerWallet->increment('available_balance', $amount);
                 });
+
+                if ($project->freelancer_id) {
+                    \Illuminate\Support\Facades\Cache::forget("freelancer_dashboard_stats_{$project->freelancer_id}");
+                }
 
                 return back()->with('success', 'تم قبول التسليم بنجاح، وجميع تسليمات المشروع مكتملة. تم تحويل المبلغ للرصيد المتاح للخبير.');
             }

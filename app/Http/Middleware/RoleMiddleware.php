@@ -15,9 +15,23 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next, string $role): Response
     {
-        $requiredRole = $role === 'company' ? 'client_company' : $role;
+        if (! $request->user()) {
+            return redirect()->guest(route('login'));
+        }
 
-        abort_unless($request->user() && $request->user()->role === $requiredRole, 403);
+        $userRole = $request->user()->role;
+        $requiredRole = ($role === 'company' || $role === 'client_company') ? 'client_company' : $role;
+
+        if ($userRole !== $requiredRole) {
+            if ($userRole === 'freelancer') {
+                return redirect()->route('freelancer.dashboard')->with('error', 'تم تحويلك إلى لوحة تحكم المستقل الخاصة بحسابك.');
+            }
+            if ($userRole === 'client_company' || $userRole === 'company') {
+                return redirect()->route('company.dashboard')->with('error', 'تم تحويلك إلى لوحة تحكم ريادي الأعمال الخاصة بحسابك.');
+            }
+
+            abort(403, 'غير مصرح لك بالوصول إلى هذه الصفحة.');
+        }
 
         return $next($request);
     }

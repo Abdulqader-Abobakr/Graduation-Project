@@ -98,7 +98,9 @@ return [
             'search_path' => env('DB_SCHEMA', 'sila_p, public'),
             'sslmode' => env('DB_SSLMODE', 'require'),
             'options' => [
+                PDO::ATTR_TIMEOUT => (int) env('DB_CONNECT_TIMEOUT', 5),
                 PDO::ATTR_EMULATE_PREPARES => true,
+                PDO::ATTR_PERSISTENT => (bool) env('DB_PERSISTENT', true),
             ],
         ],
 

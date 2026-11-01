@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
+use App\Mail\NewChatMessageMail;
 use App\Models\Conversation;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class ChatController extends Controller
@@ -189,7 +193,52 @@ class ChatController extends Controller
 
         Cache::forget("user_unread_chat_{$row->freelancer_id}");
 
+        $this->notifyRecipientOfMessage(
+            recipientId: (string) $row->freelancer_id,
+            sender: $user,
+            conversationId: (string) $conversation,
+            messageBody: $cleanBody
+        );
+
         return response()->json(['message' => $messageData]);
+    }
+
+    private function notifyRecipientOfMessage(string $recipientId, User $sender, string $conversationId, string $messageBody): void
+    {
+        try {
+            $throttleKey = "chat_email_throttled_{$conversationId}_{$recipientId}";
+            if (Cache::has($throttleKey)) {
+                return;
+            }
+
+            $recipient = User::find($recipientId);
+            if (!$recipient || empty($recipient->email)) {
+                return;
+            }
+
+            if (! (bool) ($recipient->email_notifications ?? true)) {
+                return;
+            }
+
+            $subject = DB::table('sila_p.conversations')->where('id', $conversationId)->value('subject') ?? 'محادثة مباشرة';
+
+            $mailable = new NewChatMessageMail($recipient, $sender, $subject, $messageBody, $conversationId);
+            $mailer = Mail::to($recipient->email);
+            if (!empty($recipient->alternative_email) && filter_var($recipient->alternative_email, FILTER_VALIDATE_EMAIL)) {
+                $mailer->cc($recipient->alternative_email);
+            }
+            $mailer->send($mailable);
+
+            // Throttle email alerts for 15 minutes per conversation to avoid spamming the inbox
+            Cache::put($throttleKey, true, now()->addMinutes(15));
+            Log::info("Chat message email notification sent to {$recipient->email} for conversation {$conversationId}");
+        } catch (\Throwable $e) {
+            Log::error('Failed to send chat email notification', [
+                'conversation_id' => $conversationId,
+                'recipient_id'    => $recipientId,
+                'error'           => $e->getMessage(),
+            ]);
+        }
     }
 
     public function destroy(string $conversation)

@@ -187,32 +187,41 @@ export default function Dashboard({
     },
     {
       label: 'نسبة الإنجاز',
-      value: `${statsData.completionRate ?? '100'}%`,
+      value: `${statsData.completionRate ?? 0}%`,
       icon: <CheckCircle2 className="text-slate-700" size={24} />,
-      change: 'ممتاز'
+      change: statsData.completionRateLabel || 'لم يبدأ بعد'
     },
   ];
 
   const userName = auth?.user?.user_name || 'المستقل';
+  const unreadCount = Number(statsData.unreadMessagesCount ?? 0);
+
+  const getBannerSubtitle = () => {
+    if (unreadCount === 1) {
+      return 'لديك رسالة جديدة واحدة في المحادثات بانتظار ردك.';
+    }
+    if (unreadCount === 2) {
+      return 'لديك رسالتان جديدتان في المحادثات بانتظار ردك.';
+    }
+    if (unreadCount >= 3 && unreadCount <= 10) {
+      return `لديك ${unreadCount} رسائل جديدة في المحادثات بانتظار ردك.`;
+    }
+    if (unreadCount > 10) {
+      return `لديك ${unreadCount} رسالة جديدة في المحادثات بانتظار ردك.`;
+    }
+    return 'مرحباً بك في مساحة عملك؛ تابع مشاريعك وأرباحك، وتصفح أحدث طلبات المشاريع لتقديم عروضك.';
+  };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8" dir="rtl">
 
       {/* Welcome Banner */}
       <div className="bg-linear-to-br from-primary via-primary/80 to-primary rounded-2xl p-8 text-white relative overflow-hidden shadow-lg shadow-primary/20">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">مرحباً {userName}، إليك ملخص نشاطك اليوم.</h1>
-            <p className="text-white/80">
-              لديك {statsData.unreadMessagesCount ?? 0} رسائل جديدة ومشروع واحد يتطلب تسليماً قريباً.
-            </p>
-          </div>
-          <Link
-            href="/freelancer/projects"
-            className="bg-white text-slate-700 px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-100 transition-colors shrink-0 flex items-center gap-2"
-          >
-            عرض المهام العاجلة ←
-          </Link>
+        <div className="relative z-10">
+          <h1 className="text-3xl font-bold mb-2">مرحباً بك، {userName} 👋</h1>
+          <p className="text-white/90 text-sm sm:text-base font-medium">
+            {getBannerSubtitle()}
+          </p>
         </div>
         {/* Abstract Background Elements */}
         <div className="absolute top-0 inset-s-0 w-64 h-64 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl"></div>

@@ -47,7 +47,7 @@ const REGEX_PATTERNS = {
 };
 
 // Tag Input Component with security & validation
-const TagInput = ({ tags = [], setTags, placeholder, error, onTagChange }) => {
+const TagInput = ({ tags = [], setTags, placeholder, error, onTagChange, addButtonText = 'إضافة' }) => {
   const [inputValue, setInputValue] = useState('');
   const [inputError, setInputError] = useState('');
 
@@ -73,7 +73,7 @@ const TagInput = ({ tags = [], setTags, placeholder, error, onTagChange }) => {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ',') {
+    if (e.key === 'Enter') {
       e.preventDefault();
       addTag(inputValue);
     }
@@ -86,38 +86,62 @@ const TagInput = ({ tags = [], setTags, placeholder, error, onTagChange }) => {
   };
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex flex-wrap gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl min-h-[48px] items-center focus-within:bg-white focus-within:border-primary transition-colors">
-        {tags.map((tag, index) => (
-          <span
-            key={index}
-            className="px-3 py-1 bg-white border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-2xs"
-          >
-            <span>{tag}</span>
-            <button
-              type="button"
-              onClick={() => removeTag(index)}
-              className="text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
-            >
-              <X size={13} />
-            </button>
-          </span>
-        ))}
-        <input
-          type="text"
-          value={inputValue}
-          onChange={(e) => {
-            setInputValue(e.target.value);
-            if (inputError) setInputError('');
-          }}
-          onKeyDown={handleKeyDown}
-          placeholder={tags.length === 0 ? placeholder : ''}
-          className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 min-w-[140px] text-xs font-medium text-slate-800 py-1"
-        />
+    <div className="space-y-3">
+      {/* Explicit input row so user clearly sees where to type */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => {
+              setInputValue(e.target.value);
+              if (inputError) setInputError('');
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-xl focus:bg-white focus:outline-none text-xs sm:text-sm font-medium transition-colors ${
+              inputError || error
+                ? 'border-rose-400 focus:border-rose-500'
+                : 'border-slate-200 focus:border-primary'
+            }`}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => addTag(inputValue)}
+          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+        >
+          <Plus size={15} />
+          <span>{addButtonText}</span>
+        </button>
       </div>
+
       {inputError && <p className="text-rose-500 text-xs font-medium">{inputError}</p>}
       {error && <p className="text-rose-500 text-xs font-medium">{error}</p>}
-      <p className="text-[11px] text-slate-400 font-medium">اضغط Enter بعد كتابة كل عنصر للإضافة</p>
+
+      {/* Badges container */}
+      <div className="p-3 bg-slate-50/70 border border-slate-200/80 rounded-xl min-h-[50px] flex flex-wrap items-center gap-2">
+        {tags.length > 0 ? (
+          tags.map((tag, index) => (
+            <span
+              key={index}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg shadow-2xs hover:border-slate-300 transition-colors"
+            >
+              <span>{tag}</span>
+              <button
+                type="button"
+                onClick={() => removeTag(index)}
+                className="text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                title="حذف"
+              >
+                <X size={13} />
+              </button>
+            </span>
+          ))
+        ) : (
+          <p className="text-xs text-slate-400 font-medium">لم يتم إضافة أي عناصر بعد. اكتب العنصر في الحقل أعلاه واضغط «إضافة» أو Enter.</p>
+        )}
+      </div>
     </div>
   );
 };
@@ -593,288 +617,278 @@ export default function Profile({
       </header>
 
       {/* ============================================================ */}
-      {/* SECTION 1: PERSONAL & PROFESSIONAL INFO                      */}
+      {/* SECTION 1: PERSONAL INFO, SPECIALTIES & SECTORS              */}
       {/* ============================================================ */}
       <section className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs p-6 sm:p-7">
-        <div className="flex items-center gap-2 mb-6 border-b border-slate-100 pb-3">
-          <User size={18} className="text-slate-700" />
-          <h2 className="text-base font-bold text-slate-800">المعلومات الشخصية والمهنية</h2>
-        </div>
-
-        <form onSubmit={handleProfileSubmit} className="space-y-6">
-          <div className="flex flex-col sm:flex-row gap-6">
-            {/* Avatar */}
-            <div className="flex flex-col items-center gap-2 shrink-0">
-              <div
-                className="w-24 h-24 rounded-full bg-slate-100 border border-slate-200 overflow-hidden relative group cursor-pointer flex items-center justify-center"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {avatarPreview ? (
-                  <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <User size={40} className="text-slate-300" />
-                )}
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white">
-                  <Camera size={18} />
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="text-xs text-primary font-bold hover:underline cursor-pointer"
-              >
-                تغيير الصورة
-              </button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleAvatarChange}
-                className="hidden"
-                accept="image/jpeg,image/png,image/jpg,image/webp"
-              />
-              {getProfileError('avatar') && (
-                <p className="text-rose-500 text-xs text-center">{getProfileError('avatar')}</p>
-              )}
+        <form onSubmit={handleProfileSubmit} className="space-y-8">
+          {/* Part 1: Personal & Professional Info */}
+          <div>
+            <div className="flex items-center gap-2 mb-6 border-b border-slate-100 pb-3">
+              <User size={18} className="text-slate-700" />
+              <h2 className="text-base font-bold text-slate-800">المعلومات الشخصية والمهنية</h2>
             </div>
 
-            {/* Inputs Grid */}
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Full Name */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 block">
-                  الاسم الكامل <span className="text-rose-500">*</span>
-                </label>
+            <div className="flex flex-col sm:flex-row gap-6">
+              {/* Avatar */}
+              <div className="flex flex-col items-center gap-2 shrink-0">
+                <div
+                  className="w-24 h-24 rounded-full bg-slate-100 border border-slate-200 overflow-hidden relative group cursor-pointer flex items-center justify-center"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <User size={40} className="text-slate-300" />
+                  )}
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white">
+                    <Camera size={18} />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-xs text-primary font-bold hover:underline cursor-pointer"
+                >
+                  تغيير الصورة
+                </button>
                 <input
-                  type="text"
-                  value={profileData.user_name}
-                  onChange={(e) => {
-                    setProfileData('user_name', e.target.value);
-                    if (clientErrors.user_name) {
-                      setClientErrors((prev) => ({ ...prev, user_name: '' }));
-                    }
-                  }}
-                  placeholder="أدخل اسمك الكامل"
-                  className={`w-full px-3.5 py-2 bg-slate-50 border rounded-xl focus:bg-white focus:outline-none text-xs sm:text-sm font-medium transition-colors ${getProfileError('user_name')
-                    ? 'border-rose-400 focus:border-rose-500'
-                    : 'border-slate-200 focus:border-primary'
-                    }`}
-                  required
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleAvatarChange}
+                  className="hidden"
+                  accept="image/jpeg,image/png,image/jpg,image/webp"
                 />
-                {getProfileError('user_name') && (
-                  <p className="text-rose-500 text-xs font-medium">{getProfileError('user_name')}</p>
+                {getProfileError('avatar') && (
+                  <p className="text-rose-500 text-xs text-center">{getProfileError('avatar')}</p>
                 )}
               </div>
 
-              {/* Job Title */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 block">
-                  المسمى الوظيفي <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={profileData.job_title}
-                  onChange={(e) => {
-                    setProfileData('job_title', e.target.value);
-                    if (clientErrors.job_title) {
-                      setClientErrors((prev) => ({ ...prev, job_title: '' }));
-                    }
-                  }}
-                  placeholder="مثال: مصمم واجهات مستخدم، مطور تطبيقات"
-                  className={`w-full px-3.5 py-2 bg-slate-50 border rounded-xl focus:bg-white focus:outline-none text-xs sm:text-sm font-medium transition-colors ${getProfileError('job_title')
-                    ? 'border-rose-400 focus:border-rose-500'
-                    : 'border-slate-200 focus:border-primary'
-                    }`}
-                  required
-                />
-                {getProfileError('job_title') && (
-                  <p className="text-rose-500 text-xs font-medium">{getProfileError('job_title')}</p>
-                )}
-              </div>
-
-              {/* Email */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  <Mail size={13} className="text-slate-400" />
-                  <span>البريد الإلكتروني <span className="text-rose-500">*</span></span>
-                </label>
-                <input
-                  type="email"
-                  value={profileData.email}
-                  onChange={(e) => {
-                    setProfileData('email', e.target.value);
-                    if (clientErrors.email) {
-                      setClientErrors((prev) => ({ ...prev, email: '' }));
-                    }
-                  }}
-                  placeholder="name@example.com"
-                  dir="ltr"
-                  className={`w-full px-3.5 py-2 bg-slate-50 border rounded-xl focus:bg-white focus:outline-none text-xs sm:text-sm font-medium text-end transition-colors ${getProfileError('email')
-                    ? 'border-rose-400 focus:border-rose-500'
-                    : 'border-slate-200 focus:border-primary'
-                    }`}
-                  required
-                />
-                {getProfileError('email') && (
-                  <p className="text-rose-500 text-xs font-medium">{getProfileError('email')}</p>
-                )}
-              </div>
-
-              {/* Phone & City */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Inputs Grid */}
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Full Name */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <Phone size={13} className="text-slate-400" />
-                    <span>رقم الهاتف <span className="text-rose-500">*</span></span>
+                  <label className="text-xs font-bold text-slate-700 block">
+                    الاسم الكامل <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
-                    value={profileData.phone_number}
+                    value={profileData.user_name}
                     onChange={(e) => {
-                      setProfileData('phone_number', e.target.value);
-                      if (clientErrors.phone_number) {
-                        setClientErrors((prev) => ({ ...prev, phone_number: '' }));
+                      setProfileData('user_name', e.target.value);
+                      if (clientErrors.user_name) {
+                        setClientErrors((prev) => ({ ...prev, user_name: '' }));
                       }
                     }}
-                    placeholder="7xxxxxxxx"
+                    placeholder="أدخل اسمك الكامل"
+                    className={`w-full px-3.5 py-2 bg-slate-50 border rounded-xl focus:bg-white focus:outline-none text-xs sm:text-sm font-medium transition-colors ${getProfileError('user_name')
+                      ? 'border-rose-400 focus:border-rose-500'
+                      : 'border-slate-200 focus:border-primary'
+                      }`}
+                    required
+                  />
+                  {getProfileError('user_name') && (
+                    <p className="text-rose-500 text-xs font-medium">{getProfileError('user_name')}</p>
+                  )}
+                </div>
+
+                {/* Job Title */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 block">
+                    المسمى الوظيفي <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={profileData.job_title}
+                    onChange={(e) => {
+                      setProfileData('job_title', e.target.value);
+                      if (clientErrors.job_title) {
+                        setClientErrors((prev) => ({ ...prev, job_title: '' }));
+                      }
+                    }}
+                    placeholder="مثال: مصمم واجهات مستخدم، مطور تطبيقات"
+                    className={`w-full px-3.5 py-2 bg-slate-50 border rounded-xl focus:bg-white focus:outline-none text-xs sm:text-sm font-medium transition-colors ${getProfileError('job_title')
+                      ? 'border-rose-400 focus:border-rose-500'
+                      : 'border-slate-200 focus:border-primary'
+                      }`}
+                    required
+                  />
+                  {getProfileError('job_title') && (
+                    <p className="text-rose-500 text-xs font-medium">{getProfileError('job_title')}</p>
+                  )}
+                </div>
+
+                {/* Email */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <Mail size={13} className="text-slate-400" />
+                    <span>البريد الإلكتروني <span className="text-rose-500">*</span></span>
+                  </label>
+                  <input
+                    type="email"
+                    value={profileData.email}
+                    onChange={(e) => {
+                      setProfileData('email', e.target.value);
+                      if (clientErrors.email) {
+                        setClientErrors((prev) => ({ ...prev, email: '' }));
+                      }
+                    }}
+                    placeholder="name@example.com"
                     dir="ltr"
-                    className={`w-full px-3.5 py-2 bg-slate-50 border rounded-xl focus:bg-white focus:outline-none text-xs sm:text-sm font-medium text-end transition-colors ${getProfileError('phone_number')
+                    className={`w-full px-3.5 py-2 bg-slate-50 border rounded-xl focus:bg-white focus:outline-none text-xs sm:text-sm font-medium text-end transition-colors ${getProfileError('email')
                       ? 'border-rose-400 focus:border-rose-500'
                       : 'border-slate-200 focus:border-primary'
                       }`}
                     required
                   />
-                  {getProfileError('phone_number') && (
-                    <p className="text-rose-500 text-xs font-medium">{getProfileError('phone_number')}</p>
+                  {getProfileError('email') && (
+                    <p className="text-rose-500 text-xs font-medium">{getProfileError('email')}</p>
                   )}
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <MapPin size={13} className="text-slate-400" />
-                    <span>المدينة <span className="text-rose-500">*</span></span>
-                  </label>
-                  <input
-                    type="text"
-                    value={profileData.city}
+                {/* Phone & City */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                      <Phone size={13} className="text-slate-400" />
+                      <span>رقم الهاتف <span className="text-rose-500">*</span></span>
+                    </label>
+                    <input
+                      type="text"
+                      value={profileData.phone_number}
+                      onChange={(e) => {
+                        setProfileData('phone_number', e.target.value);
+                        if (clientErrors.phone_number) {
+                          setClientErrors((prev) => ({ ...prev, phone_number: '' }));
+                        }
+                      }}
+                      placeholder="7xxxxxxxx"
+                      dir="ltr"
+                      className={`w-full px-3.5 py-2 bg-slate-50 border rounded-xl focus:bg-white focus:outline-none text-xs sm:text-sm font-medium text-end transition-colors ${getProfileError('phone_number')
+                        ? 'border-rose-400 focus:border-rose-500'
+                        : 'border-slate-200 focus:border-primary'
+                        }`}
+                      required
+                    />
+                    {getProfileError('phone_number') && (
+                      <p className="text-rose-500 text-xs font-medium">{getProfileError('phone_number')}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                      <MapPin size={13} className="text-slate-400" />
+                      <span>المدينة <span className="text-rose-500">*</span></span>
+                    </label>
+                    <input
+                      type="text"
+                      value={profileData.city}
+                      onChange={(e) => {
+                        setProfileData('city', e.target.value);
+                        if (clientErrors.city) {
+                          setClientErrors((prev) => ({ ...prev, city: '' }));
+                        }
+                      }}
+                      placeholder="صنعاء، عدن..."
+                      className={`w-full px-3.5 py-2 bg-slate-50 border rounded-xl focus:bg-white focus:outline-none text-xs sm:text-sm font-medium transition-colors ${getProfileError('city')
+                        ? 'border-rose-400 focus:border-rose-500'
+                        : 'border-slate-200 focus:border-primary'
+                        }`}
+                      required
+                    />
+                    {getProfileError('city') && (
+                      <p className="text-rose-500 text-xs font-medium">{getProfileError('city')}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bio */}
+                <div className="md:col-span-2 space-y-1">
+                  <label className="text-xs font-bold text-slate-700 block">نبذة تعريفية</label>
+                  <textarea
+                    rows={3}
+                    value={profileData.bio}
                     onChange={(e) => {
-                      setProfileData('city', e.target.value);
-                      if (clientErrors.city) {
-                        setClientErrors((prev) => ({ ...prev, city: '' }));
+                      setProfileData('bio', e.target.value);
+                      if (clientErrors.bio) {
+                        setClientErrors((prev) => ({ ...prev, bio: '' }));
                       }
                     }}
-                    placeholder="صنعاء، عدن..."
-                    className={`w-full px-3.5 py-2 bg-slate-50 border rounded-xl focus:bg-white focus:outline-none text-xs sm:text-sm font-medium transition-colors ${getProfileError('city')
+                    placeholder="نبذة موجزة عن خبراتك المهنية والخدمات التي تقدمها..."
+                    className={`w-full px-3.5 py-2 bg-slate-50 border rounded-xl focus:bg-white focus:outline-none text-xs sm:text-sm font-medium resize-none transition-colors ${getProfileError('bio')
                       ? 'border-rose-400 focus:border-rose-500'
                       : 'border-slate-200 focus:border-primary'
                       }`}
-                    required
                   />
-                  {getProfileError('city') && (
-                    <p className="text-rose-500 text-xs font-medium">{getProfileError('city')}</p>
+                  {getProfileError('bio') && (
+                    <p className="text-rose-500 text-xs font-medium">{getProfileError('bio')}</p>
                   )}
                 </div>
-              </div>
-
-              {/* Bio */}
-              <div className="md:col-span-2 space-y-1">
-                <label className="text-xs font-bold text-slate-700 block">نبذة تعريفية</label>
-                <textarea
-                  rows={3}
-                  value={profileData.bio}
-                  onChange={(e) => {
-                    setProfileData('bio', e.target.value);
-                    if (clientErrors.bio) {
-                      setClientErrors((prev) => ({ ...prev, bio: '' }));
-                    }
-                  }}
-                  placeholder="نبذة موجزة عن خبراتك المهنية والخدمات التي تقدمها..."
-                  className={`w-full px-3.5 py-2 bg-slate-50 border rounded-xl focus:bg-white focus:outline-none text-xs sm:text-sm font-medium resize-none transition-colors ${getProfileError('bio')
-                    ? 'border-rose-400 focus:border-rose-500'
-                    : 'border-slate-200 focus:border-primary'
-                    }`}
-                />
-                {getProfileError('bio') && (
-                  <p className="text-rose-500 text-xs font-medium">{getProfileError('bio')}</p>
-                )}
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-slate-100">
+          {/* Part 2: Specialties & Sectors */}
+          <div className="pt-2">
+            <div className="flex items-center gap-2 mb-6 border-b border-slate-100 pb-3">
+              <Briefcase size={18} className="text-slate-700" />
+              <h2 className="text-base font-bold text-slate-800">المهارات والخدمات والقطاعات</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Skills and Services */}
+              <div className="space-y-1.5">
+                <label className="text-xs sm:text-sm font-bold text-slate-700 block">
+                  المهارات والخدمات <span className="text-rose-500">*</span>
+                </label>
+                <p className="text-xs text-slate-400 mb-2">التخصصات والخدمات التي تقدمها لعملائك</p>
+                <TagInput
+                  tags={profileData.marketing_specialties}
+                  setTags={(val) => setProfileData('marketing_specialties', val)}
+                  onTagChange={() => {
+                    if (clientErrors.marketing_specialties) {
+                      setClientErrors((prev) => ({ ...prev, marketing_specialties: '' }));
+                    }
+                  }}
+                  placeholder="أدخل مهارة أو خدمة جديدة..."
+                  addButtonText="إضافة"
+                  error={getProfileError('marketing_specialties')}
+                />
+              </div>
+
+              {/* Experienced Sectors */}
+              <div className="space-y-1.5">
+                <label className="text-xs sm:text-sm font-bold text-slate-700 block">
+                  مجالات وقطاعات ريادة الأعمال <span className="text-rose-500">*</span>
+                </label>
+                <p className="text-xs text-slate-400 mb-2">القطاعات والأنشطة التي تمتلك خبرة سابقة في خدمتها</p>
+                <TagInput
+                  tags={profileData.experienced_sectors}
+                  setTags={(val) => setProfileData('experienced_sectors', val)}
+                  onTagChange={() => {
+                    if (clientErrors.experienced_sectors) {
+                      setClientErrors((prev) => ({ ...prev, experienced_sectors: '' }));
+                    }
+                  }}
+                  placeholder="أدخل مجالاً أو قطاع خبرة جديد..."
+                  addButtonText="إضافة"
+                  error={getProfileError('experienced_sectors')}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Single Save Button */}
+          <div className="flex justify-end pt-5 border-t border-slate-100">
             <button
               type="submit"
               disabled={processingProfile}
-              className="inline-flex items-center gap-2 px-5 py-2 bg-primary hover:bg-[#1f6fd4] text-white font-bold text-xs sm:text-sm rounded-xl transition-all disabled:opacity-60 cursor-pointer shadow-2xs"
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary hover:bg-[#1f6fd4] text-white font-bold text-xs sm:text-sm rounded-xl transition-all disabled:opacity-60 cursor-pointer shadow-2xs"
             >
-              <Save size={15} />
-              <span>{processingProfile ? 'جارٍ الحفظ...' : 'حفظ المعلومات الشخصية'}</span>
+              <Save size={16} />
+              <span>{processingProfile ? 'جارٍ الحفظ...' : 'حفظ التعديلات'}</span>
             </button>
           </div>
         </form>
-      </section>
-
-      {/* ============================================================ */}
-      {/* SECTION 2: SPECIALTIES & SECTORS (SEPARATED)                 */}
-      {/* ============================================================ */}
-      <section className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs p-6 sm:p-7 space-y-5">
-        <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-          <Briefcase size={18} className="text-slate-700" />
-          <div>
-            <h2 className="text-base font-bold text-slate-800">المهارات والخدمات والقطاعات</h2>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Skills and Services */}
-          <div className="space-y-1.5">
-            <label className="text-xs sm:text-sm font-bold text-slate-700 block">
-              المهارات والخدمات <span className="text-rose-500">*</span>
-            </label>
-            <p className="text-xs text-slate-400 mb-2">التخصصات والخدمات التي تقدمها لعملائك</p>
-            <TagInput
-              tags={profileData.marketing_specialties}
-              setTags={(val) => setProfileData('marketing_specialties', val)}
-              onTagChange={() => {
-                if (clientErrors.marketing_specialties) {
-                  setClientErrors((prev) => ({ ...prev, marketing_specialties: '' }));
-                }
-              }}
-              placeholder="مثال: تصميم جرافيك، تطوير مواقع، تسويق رقمي..."
-              error={getProfileError('marketing_specialties')}
-            />
-          </div>
-
-          {/* Experienced Sectors */}
-          <div className="space-y-1.5">
-            <label className="text-xs sm:text-sm font-bold text-slate-700 block">
-              مجالات وقطاعات ريادة الأعمال <span className="text-rose-500">*</span>
-            </label>
-            <p className="text-xs text-slate-400 mb-2">القطاعات والأنشطة التي تمتلك خبرة سابقة في خدمتها</p>
-            <TagInput
-              tags={profileData.experienced_sectors}
-              setTags={(val) => setProfileData('experienced_sectors', val)}
-              onTagChange={() => {
-                if (clientErrors.experienced_sectors) {
-                  setClientErrors((prev) => ({ ...prev, experienced_sectors: '' }));
-                }
-              }}
-              placeholder="مثال: التجارة الإلكترونية، التقنية المالية، التعليم..."
-              error={getProfileError('experienced_sectors')}
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end pt-4 border-t border-slate-100">
-          <button
-            type="button"
-            onClick={handleProfileSubmit}
-            disabled={processingProfile}
-            className="inline-flex items-center gap-2 px-5 py-2 bg-primary hover:bg-[#1f6fd4] text-white font-bold text-xs sm:text-sm rounded-xl transition-all disabled:opacity-60 cursor-pointer shadow-2xs"
-          >
-            <Save size={15} />
-            <span>{processingProfile ? 'جارٍ الحفظ...' : 'حفظ التخصصات والقطاعات'}</span>
-          </button>
-        </div>
       </section>
 
       {/* ============================================================ */}

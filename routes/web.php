@@ -10,9 +10,7 @@ use App\Http\Controllers\Company\ProfileController;
 use App\Http\Controllers\Company\ProposalController as CompanyProposalController;
 use App\Http\Controllers\PlatformAssistantController;
 
-Route::get('/', function () {
-    return Inertia::render('Landing');
-})->name('home');
+Route::inertia('/', 'Landing')->name('home');
 
 Route::get('/register', [RegisterController::class, 'create'])->name('register');
 Route::post('/register', [RegisterController::class, 'store']);
@@ -89,9 +87,7 @@ Route::middleware(['auth', 'role:company'])->group(function () {
         ->name('company.projects.disputes.store');
 });
 
-Route::get('/auth/confirm', function () {
-    return redirect('/login');
-});
+Route::redirect('/auth/confirm', '/login');
 
 /*
 |--------------------------------------------------------------------------

@@ -26,6 +26,19 @@ class Freelancer extends Model
         'marketing_specialties' => 'array',
     ];
 
+    protected static function booted(): void
+    {
+        static::saved(function () {
+            \Illuminate\Support\Facades\Cache::forget('company_explore_freelancers');
+            \Illuminate\Support\Facades\Cache::forget('company_freelancers_list');
+        });
+
+        static::deleted(function () {
+            \Illuminate\Support\Facades\Cache::forget('company_explore_freelancers');
+            \Illuminate\Support\Facades\Cache::forget('company_freelancers_list');
+        });
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id', 'id');

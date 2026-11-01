@@ -6,13 +6,25 @@ import FreelancerProfileModal from '../../Components/company/FreelancerProfileMo
 export default function ExplorePage({ freelancers = [], onSubmit, search = '', activeFilter = 'all' }) {
     const [selectedFreelancer, setSelectedFreelancer] = useState(null);
     const [viewingProfile, setViewingProfile] = useState(null);
+    const [allFreelancers, setAllFreelancers] = useState(freelancers);
+
+    useEffect(() => {
+        setAllFreelancers(freelancers);
+    }, [freelancers]);
+
+    const handleProfileLoaded = (freshData) => {
+        if (!freshData?.id) return;
+        setAllFreelancers((prev) =>
+            prev.map((f) => (String(f.id) === String(freshData.id) ? { ...f, ...freshData } : f))
+        );
+    };
 
     useEffect(() => {
         try {
             const params = new URLSearchParams(window.location.search);
             const targetId = params.get('freelancer');
             if (targetId) {
-                const existing = freelancers.find(
+                const existing = allFreelancers.find(
                     (f) => String(f.id) === String(targetId) || String(f.userId) === String(targetId)
                 );
                 setViewingProfile(existing || targetId);
@@ -20,12 +32,12 @@ export default function ExplorePage({ freelancers = [], onSubmit, search = '', a
         } catch (_) {
             // ignore
         }
-    }, [freelancers]);
+    }, [allFreelancers]);
 
     const filteredFreelancers = useMemo(() => {
         const q = search.trim().toLowerCase();
 
-        return freelancers.filter((f) => {
+        return allFreelancers.filter((f) => {
             const industries = f.industries || [];
 
             const matchesIndustry =
@@ -39,7 +51,7 @@ export default function ExplorePage({ freelancers = [], onSubmit, search = '', a
 
             return matchesIndustry && matchesSearch;
         });
-    }, [freelancers, activeFilter, search]);
+    }, [allFreelancers, activeFilter, search]);
 
     return (
         <div className="w-full max-w-5xl mx-auto">
@@ -144,6 +156,7 @@ export default function ExplorePage({ freelancers = [], onSubmit, search = '', a
                 isOpen={Boolean(viewingProfile)}
                 freelancer={viewingProfile}
                 onClose={() => setViewingProfile(null)}
+                onProfileLoaded={handleProfileLoaded}
                 onRequestService={(fl) => {
                     setViewingProfile(null);
                     setSelectedFreelancer(fl);

@@ -51,6 +51,7 @@ class ProposalController extends Controller
         });
 
         BriefController::invalidateBriefCaches((string) $request->user()->id);
+        \Illuminate\Support\Facades\Cache::forget("company_pending_proposals_{$request->user()->id}");
 
         return redirect()->route('company.dashboard', ['tab' => 'projects'])->with('success', 'تم قبول العرض بنجاح. يرجى إتمام الدفع لتفعيل المشروع وبدء العمل.');
     }
@@ -63,6 +64,7 @@ class ProposalController extends Controller
         $proposal->update(['status' => 'rejected']);
 
         BriefController::invalidateBriefCaches((string) $request->user()->id);
+        \Illuminate\Support\Facades\Cache::forget("company_pending_proposals_{$request->user()->id}");
 
         return redirect()->back()->with('success', 'تم رفض العرض.');
     }

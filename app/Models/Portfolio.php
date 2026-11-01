@@ -23,6 +23,19 @@ class Portfolio extends Model
         'images' => 'array',
     ];
 
+    protected static function booted(): void
+    {
+        static::saved(function () {
+            \Illuminate\Support\Facades\Cache::forget('company_explore_freelancers');
+            \Illuminate\Support\Facades\Cache::forget('company_freelancers_list');
+        });
+
+        static::deleted(function () {
+            \Illuminate\Support\Facades\Cache::forget('company_explore_freelancers');
+            \Illuminate\Support\Facades\Cache::forget('company_freelancers_list');
+        });
+    }
+
     public function freelancer(): BelongsTo
     {
         return $this->belongsTo(Freelancer::class, 'freelancer_id', 'id');

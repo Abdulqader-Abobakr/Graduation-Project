@@ -98,6 +98,9 @@ class PortfolioController extends Controller
             'images' => $imagePaths,
         ]);
 
+        \Illuminate\Support\Facades\Cache::forget('company_explore_freelancers');
+        \Illuminate\Support\Facades\Cache::forget('company_freelancers_list');
+
         return redirect()->back()->with('success', 'تم إضافة العمل لمعرض أعمالك بنجاح.');
     }
 
@@ -187,6 +190,9 @@ class PortfolioController extends Controller
             'images' => $imagePaths,
         ]);
 
+        \Illuminate\Support\Facades\Cache::forget('company_explore_freelancers');
+        \Illuminate\Support\Facades\Cache::forget('company_freelancers_list');
+
         return redirect()->back()->with('success', 'تم تحديث العمل بنجاح.');
     }
 
@@ -201,6 +207,9 @@ class PortfolioController extends Controller
 
         $portfolio = Portfolio::where('freelancer_id', $freelancer->id)->findOrFail($id);
         $portfolio->delete();
+
+        \Illuminate\Support\Facades\Cache::forget('company_explore_freelancers');
+        \Illuminate\Support\Facades\Cache::forget('company_freelancers_list');
 
         return redirect()->back()->with('success', 'تم حذف العمل من معرض أعمالك بنجاح.');
     }
