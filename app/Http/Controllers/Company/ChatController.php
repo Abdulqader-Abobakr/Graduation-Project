@@ -14,30 +14,34 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Inertia\Inertia;
 
 class ChatController extends Controller
 {
     /**
-     * Show the chat page for a specific conversation.
-     * Redirects to the SPA dashboard to maintain data context.
+     * Render the Company Chat overview page.
      */
-    public function show(string $conversation)
+    public function index(Request $request)
     {
-        $userId = auth()->id();
+        return Inertia::render('company_side/App', [
+            'activeTab'     => 'chat',
+            'conversations' => self::conversationsListData($request),
+            'conversation'  => null,
+        ]);
+    }
 
-        $updated = DB::table('sila_p.conversations')
-            ->where('id', $conversation)
-            ->where('client_id', $userId)
-            ->update(['client_read_at' => now()]);
+    /**
+     * Show the chat page for a specific conversation directly inside the company SPA shell.
+     */
+    public function show(Request $request, string $conversation)
+    {
+        $convData = self::conversationData($request, $conversation);
+        abort_unless($convData !== null, 403);
 
-        abort_unless($updated > 0 || DB::table('sila_p.conversations')->where('id', $conversation)->where('client_id', $userId)->exists(), 403);
-
-        Cache::forget("user_unread_chat_{$userId}");
-        Cache::forget("chat_meta_{$conversation}");
-
-        return redirect()->route('company.dashboard', [
-            'tab' => 'chat',
-            'conversation' => $conversation,
+        return Inertia::render('company_side/App', [
+            'activeTab'     => 'chat',
+            'conversations' => self::conversationsListData($request, $conversation),
+            'conversation'  => $convData,
         ]);
     }
 
@@ -46,10 +50,20 @@ class ChatController extends Controller
      */
     public function conversations(Request $request): JsonResponse
     {
-        $userId = $request->user()->id;
-        $activeConvId = $request->query('conversation');
+        return response()->json([
+            'conversations' => self::conversationsListData($request),
+        ]);
+    }
 
-        $conversations = Conversation::query()
+    /**
+     * Load the conversations overview list for the Company Chat tab.
+     */
+    public static function conversationsListData(Request $request, ?string $activeConvId = null): array
+    {
+        $userId = $request->user()->id;
+        $activeConvId = $activeConvId ?? $request->query('conversation');
+
+        return Conversation::query()
             ->leftJoin('sila_p.users as fl', 'sila_p.conversations.freelancer_id', '=', 'fl.id')
             ->leftJoin('sila_p.briefs as b', 'sila_p.conversations.brief_id', '=', 'b.id')
             ->where('sila_p.conversations.client_id', $userId)
@@ -93,8 +107,58 @@ class ChatController extends Controller
                 ];
             })
             ->all();
+    }
 
-        return response()->json(['conversations' => $conversations]);
+    /**
+     * Load active conversation details & messages for the Company Chat tab.
+     */
+    public static function conversationData(Request $request, ?string $conversationId = null): ?array
+    {
+        $conversationId = $conversationId ?? $request->query('conversation');
+
+        if (! $conversationId) {
+            return null;
+        }
+
+        $userId = (string) $request->user()->id;
+
+        $conv = DB::table('sila_p.conversations as c')
+            ->leftJoin('sila_p.users as fl', 'c.freelancer_id', '=', 'fl.id')
+            ->leftJoin('sila_p.briefs as b', 'c.brief_id', '=', 'b.id')
+            ->where('c.id', $conversationId)
+            ->where('c.client_id', $userId)
+            ->select([
+                'c.id',
+                'c.subject',
+                'fl.id as fl_id',
+                'fl.user_name as fl_name',
+                'fl.avatar_path as fl_avatar',
+                'b.title as brief_title',
+            ])
+            ->first();
+
+        if (! $conv) {
+            return null;
+        }
+
+        // Mark as read for client when opened
+        DB::table('sila_p.conversations')
+            ->where('id', $conversationId)
+            ->update(['client_read_at' => now()]);
+        Cache::forget("user_unread_chat_{$userId}");
+        Cache::forget("chat_meta_{$conversationId}");
+
+        return [
+            'id' => (string) $conv->id,
+            'subject' => $conv->subject,
+            'requestTitle' => $conv->brief_title ?: $conv->subject,
+            'freelancer' => [
+                'id' => (string) $conv->fl_id,
+                'name' => $conv->fl_name ?? 'الخبير',
+                'avatar' => $conv->fl_avatar,
+            ],
+            'messages' => self::getCachedMessages((string) $conversationId),
+        ];
     }
 
     /**
@@ -260,7 +324,7 @@ class ChatController extends Controller
         Cache::forget("user_unread_chat_{$conv->client_id}");
         Cache::forget("user_unread_chat_{$conv->freelancer_id}");
 
-        return redirect()->route('company.dashboard', ['tab' => 'chat'])
+        return redirect()->route('company.chat.index')
             ->with('success', 'تم حذف المحادثة بنجاح.');
     }
 

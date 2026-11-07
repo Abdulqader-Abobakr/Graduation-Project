@@ -51,7 +51,7 @@ export default function PaymentPage({ project }) {
             <div className="max-w-3xl mx-auto px-4 py-10">
                 {/* Back Link */}
                 <Link
-                    href="/company?tab=projects"
+                    href="/company/projects"
                     className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors mb-8 group"
                 >
                     <ChevronRight size={20} className="transition-transform group-hover:translate-x-1" />

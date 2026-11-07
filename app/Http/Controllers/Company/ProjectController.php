@@ -16,19 +16,143 @@ use Inertia\Inertia;
 class ProjectController extends Controller
 {
     /**
-     * Display the project workspace inside the company SPA shell (App.jsx).
-     *
-     * Redirects to the SPA dashboard to maintain data context, matching the Chat behavior.
+     * Load all projects for the Company "My Projects" tab.
+     */
+    public static function projectsData(Request $request): array
+    {
+        return Project::query()
+            ->leftJoin('sila_p.users as fl', 'sila_p.projects.freelancer_id', '=', 'fl.id')
+            ->where('sila_p.projects.client_id', $request->user()->id)
+            ->select([
+                'sila_p.projects.id',
+                'sila_p.projects.freelancer_id',
+                'sila_p.projects.title',
+                'sila_p.projects.status',
+                'sila_p.projects.rating',
+                'sila_p.projects.rated_at',
+                'sila_p.projects.created_at',
+                'fl.user_name as freelancer_name',
+            ])
+            ->orderByDesc('sila_p.projects.created_at')
+            ->get()
+            ->map(fn(Project $project) => [
+                'id'           => (string) $project->id,
+                'freelancerId' => (string) $project->freelancer_id,
+                'title'        => $project->title,
+                'status'       => $project->status,
+                'rating'       => $project->rating,
+                'rated_at'     => $project->rated_at?->toISOString(),
+                'client'       => $project->freelancer_name ?? 'خبير',
+            ])
+            ->all();
+    }
+
+    /**
+     * Load detailed project workspace data (deliverables, revisions, disputes) for a single project.
+     */
+    public static function workspaceProjectData(Request $request, ?string $projectId = null): ?array
+    {
+        $projectId = $projectId ?? $request->query('project');
+
+        if (! $projectId) {
+            return null;
+        }
+
+        $project = Project::query()
+            ->where('client_id', $request->user()->id)
+            ->with([
+                'freelancer:id,user_name,avatar_path',
+                'deliverables' => fn($q) => $q->orderBy('created_at', 'asc'),
+                'originalProposal:id,project_id,revision_limit',
+                'proposalViaBrief:id,brief_id,revision_limit',
+                'disputes' => fn($q) => $q->with(['initiatedBy:id,user_name', 'againstUser:id,user_name'])->orderBy('created_at', 'desc'),
+            ])
+            ->findOrFail($projectId);
+
+        $freelancerRatingStats = $project->freelancer
+            ? $project->freelancer->getFreelancerRatingStats()
+            : ['rating_average' => null, 'ratings_count' => 0];
+
+        $proposal = $project->originalProposal ?? $project->proposalViaBrief;
+        $totalRevisionLimit = (int) ($proposal?->revision_limit ?? 2);
+        $minRemaining = $project->deliverables->min('remaining_revisions');
+        $projectRemainingRevisions = $minRemaining !== null ? (int) $minRemaining : $totalRevisionLimit;
+
+        $disputes = $project->disputes->map(fn(Dispute $disp) => [
+            'id'                        => (string) $disp->id,
+            'reason'                    => $disp->reason,
+            'details'                   => $disp->details,
+            'status'                    => $disp->status,
+            'status_label'              => $disp->status_label,
+            'resolution_decision'       => $disp->resolution_decision,
+            'resolution_decision_label' => $disp->resolution_decision_label,
+            'freelancer_payout_amount'  => (float) $disp->freelancer_payout_amount,
+            'client_refund_amount'      => (float) $disp->client_refund_amount,
+            'admin_notes'               => $disp->admin_notes,
+            'is_initiator'              => (string) $disp->initiated_by_user_id === (string) $request->user()->id,
+            'initiated_by_name'         => $disp->initiatedBy?->user_name ?? 'مستخدم',
+            'against_user_name'         => $disp->againstUser?->user_name ?? 'الطرف الآخر',
+            'created_at'                => $disp->created_at ? $disp->created_at->locale('ar')->translatedFormat('d F Y - h:i a') : null,
+            'resolved_at'               => $disp->resolved_at ? $disp->resolved_at->locale('ar')->translatedFormat('d F Y - h:i a') : null,
+        ]);
+
+        $activeDispute = $disputes->first(fn($d) => in_array($d['status'], ['open', 'under_review']));
+
+        return [
+            'id' => (string) $project->id,
+            'title' => $project->title,
+            'status' => $project->status,
+            'rating' => $project->rating,
+            'rated_at' => $project->rated_at?->toISOString(),
+            'freelancer_id' => (string) $project->freelancer_id,
+            'freelancer_name' => $project->freelancer?->user_name ?? 'الخبير',
+            'freelancer_rating_average' => $freelancerRatingStats['rating_average'],
+            'freelancer_ratings_count'  => $freelancerRatingStats['ratings_count'],
+            'revision_limit' => $totalRevisionLimit,
+            'remaining_revisions' => $projectRemainingRevisions,
+            'disputes' => $disputes,
+            'active_dispute' => $activeDispute,
+            'deliverables' => $project->deliverables->map(fn(Deliverable $d) => [
+                'id' => (string) $d->id,
+                'title' => $d->title,
+                'status' => $d->status,
+                'file_path' => $d->file_path,
+                'file_name' => $d->file_path ? basename($d->file_path) : null,
+                'download_url' => $d->file_path ? route('company.projects.deliverables.download', [$project->id, $d->id]) : null,
+                'view_url' => $d->file_path ? route('company.projects.deliverables.view', [$project->id, $d->id]) : null,
+                'external_link' => $d->external_link,
+                'notes' => $d->notes,
+                'client_feedback' => $d->client_feedback,
+                'remaining_revisions' => $projectRemainingRevisions,
+                'submitted_at' => $d->updated_at ? $d->updated_at->locale('ar')->translatedFormat('d F Y - h:i a') : null,
+            ]),
+        ];
+    }
+
+    /**
+     * Render the Company "My Projects" list page.
+     */
+    public function index(Request $request)
+    {
+        return Inertia::render('company_side/App', [
+            'activeTab' => 'projects',
+            'projects'  => self::projectsData($request),
+        ]);
+    }
+
+    /**
+     * Display the project workspace directly inside the company SPA shell (App.jsx).
      */
     public function show(Request $request, Project $project)
     {
-        if ($project->client_id !== auth()->id()) {
+        if ((string) $project->client_id !== (string) auth()->id()) {
             abort(403, 'غير مصرح لك بالوصول إلى مساحة عمل هذا المشروع.');
         }
 
-        return redirect()->route('company.dashboard', [
-            'tab' => 'workspace',
-            'project' => $project->id
+        return Inertia::render('company_side/App', [
+            'activeTab'        => 'workspace',
+            'projects'         => self::projectsData($request),
+            'workspaceProject' => self::workspaceProjectData($request, (string) $project->id),
         ]);
     }
 

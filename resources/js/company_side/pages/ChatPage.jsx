@@ -229,7 +229,7 @@ export default function ChatPage({ conversation, conversations = [], search = ''
 
     // Return to all chats (Back button)
     const handleBackToChats = () => {
-        router.visit('/company?tab=chat', {
+        router.visit('/company/chat', {
             preserveScroll: true,
             preserveState: false,
         });
@@ -237,7 +237,7 @@ export default function ChatPage({ conversation, conversations = [], search = ''
 
     // Open a specific chat
     const handleSelectChat = (chatId) => {
-        router.visit(`/company?tab=chat&conversation=${chatId}`, {
+        router.visit(`/company/chat/${chatId}`, {
             preserveScroll: true,
             preserveState: false,
         });

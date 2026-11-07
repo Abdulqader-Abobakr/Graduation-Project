@@ -37,20 +37,43 @@ export default function MyRequestsPage({
     const [processingProposal, setProcessingProposal] = useState(false);
     const [requestToDelete, setRequestToDelete] = useState(null);
 
-    // Track opened proposals in localStorage to persistent read status
+    // Track opened proposals in localStorage + persistent server state
     const [openedProposalIds, setOpenedProposalIds] = useState(() => {
+        const initial = new Set();
         try {
             const saved = localStorage.getItem('company_opened_proposals');
-            return saved ? new Set(JSON.parse(saved)) : new Set();
+            if (saved) {
+                for (const id of JSON.parse(saved)) {
+                    initial.add(String(id));
+                }
+            }
         } catch {
-            return new Set();
+            // ignore storage error
         }
+        for (const req of requests) {
+            for (const p of (req.proposals || [])) {
+                if (p?.isOpened || (p?.status && p.status !== 'pending')) {
+                    initial.add(String(p.id));
+                }
+            }
+        }
+        return initial;
     });
 
+    const isProposalOpened = (proposal) => {
+        if (!proposal) return false;
+        return (
+            Boolean(proposal.isOpened) ||
+            (proposal.status && proposal.status !== 'pending') ||
+            openedProposalIds.has(String(proposal.id))
+        );
+    };
+
     const markProposalAsOpened = (proposalId) => {
+        const idStr = String(proposalId);
         setOpenedProposalIds((prev) => {
             const next = new Set(prev);
-            next.add(String(proposalId));
+            next.add(idStr);
             try {
                 localStorage.setItem('company_opened_proposals', JSON.stringify([...next]));
             } catch {
@@ -58,6 +81,21 @@ export default function MyRequestsPage({
             }
             return next;
         });
+
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            fetch(`/company/proposals/${encodeURIComponent(idStr)}/open`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            }).catch(() => {});
+        } catch {
+            // ignore network error
+        }
     };
 
     const handleViewProposal = (proposal) => {
@@ -75,7 +113,7 @@ export default function MyRequestsPage({
             const pList = req.proposals || [];
             totalProposals += (req.proposalsCount || pList.length || 0);
             for (const p of pList) {
-                if (!openedProposalIds.has(String(p.id))) {
+                if (!isProposalOpened(p)) {
                     totalNewProposals += 1;
                 }
             }
@@ -239,7 +277,7 @@ export default function MyRequestsPage({
                 <div className="space-y-4">
                     {filteredRequests.map((request) => {
                         const pList = request.proposals || [];
-                        const newProposalsCount = pList.filter((p) => !openedProposalIds.has(String(p.id))).length;
+                        const newProposalsCount = pList.filter((p) => !isProposalOpened(p)).length;
                         const hasNewProposals = newProposalsCount > 0;
 
                         return (
@@ -307,7 +345,7 @@ export default function MyRequestsPage({
                                         </div>
                                         <div className="space-y-2.5">
                                             {request.proposals.map((proposal, idx) => {
-                                                const isNew = !openedProposalIds.has(String(proposal.id));
+                                                const isNew = !isProposalOpened(proposal);
                                                 const proposalNumber = idx + 1;
 
                                                 return (

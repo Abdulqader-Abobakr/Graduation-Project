@@ -43,7 +43,7 @@ class NewChatMessageMail extends Mailable
         $isFreelancer = $this->recipient->role === 'freelancer';
         $viewUrl = $isFreelancer
             ? url("/freelancer/chat?conversation={$this->conversationId}")
-            : url("/company?tab=chat&conversation={$this->conversationId}");
+            : url("/company/chat/{$this->conversationId}");
 
         return new Content(
             view: 'emails.new_chat_message',

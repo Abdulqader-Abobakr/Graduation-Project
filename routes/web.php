@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Freelancer;
 use App\Http\Controllers\Company\BriefController;
+use App\Http\Controllers\Company\FreelancerController;
 use App\Http\Controllers\Company\ProfileController;
 use App\Http\Controllers\Company\ProposalController as CompanyProposalController;
 use App\Http\Controllers\PlatformAssistantController;
@@ -26,9 +27,15 @@ Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 Route::post('/assistant/ask', [PlatformAssistantController::class, 'ask'])->name('assistant.ask');
 
 Route::middleware(['auth', 'role:company'])->group(function () {
-    Route::get('/company', [BriefController::class, 'index'])
+    Route::get('/company', [FreelancerController::class, 'index'])
         ->name('company.dashboard');
-    Route::get('/company/freelancers/{id}', [BriefController::class, 'showFreelancer'])
+    Route::get('/company/requests', [BriefController::class, 'index'])
+        ->name('company.requests');
+    Route::get('/company/projects', [\App\Http\Controllers\Company\ProjectController::class, 'index'])
+        ->name('company.projects');
+    Route::get('/company/chat', [\App\Http\Controllers\Company\ChatController::class, 'index'])
+        ->name('company.chat.index');
+    Route::get('/company/freelancers/{id}', [FreelancerController::class, 'show'])
         ->name('company.freelancers.show');
     Route::get('/company/profile', [ProfileController::class, 'show'])
         ->name('company.profile');
@@ -56,6 +63,8 @@ Route::middleware(['auth', 'role:company'])->group(function () {
         ->name('company.proposals.deny');
     Route::post('/company/proposals/{id}/chat', [CompanyProposalController::class, 'startChat'])
         ->name('company.proposals.chat');
+    Route::post('/company/proposals/{id}/open', [CompanyProposalController::class, 'markOpened'])
+        ->name('company.proposals.open');
     Route::post('/company/conversations/{id}/messages', [CompanyProposalController::class, 'sendMessage'])
         ->name('company.conversations.messages');
     Route::get('/company/chat-list', [\App\Http\Controllers\Company\ChatController::class, 'conversations'])

@@ -36,7 +36,7 @@ class NewProposalMail extends Mailable
     public function content(): Content
     {
         $clientName = $this->client->clientCompany?->company_name ?? $this->client->user_name ?? 'رائد أعمال';
-        $viewUrl = url('/company?tab=requests');
+        $viewUrl = url('/company/requests');
 
         return new Content(
             view: 'emails.new_proposal',

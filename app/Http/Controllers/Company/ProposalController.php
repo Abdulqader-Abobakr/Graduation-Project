@@ -50,10 +50,11 @@ class ProposalController extends Controller
             ]);
         });
 
+        BriefController::markProposalAsOpened((string) $request->user()->id, (string) $proposal->id);
         BriefController::invalidateBriefCaches((string) $request->user()->id);
         \Illuminate\Support\Facades\Cache::forget("company_pending_proposals_{$request->user()->id}");
 
-        return redirect()->route('company.dashboard', ['tab' => 'projects'])->with('success', 'تم قبول العرض بنجاح. يرجى إتمام الدفع لتفعيل المشروع وبدء العمل.');
+        return redirect()->route('company.projects')->with('success', 'تم قبول العرض بنجاح. يرجى إتمام الدفع لتفعيل المشروع وبدء العمل.');
     }
 
     public function deny(Request $request, string $id): RedirectResponse
@@ -63,6 +64,7 @@ class ProposalController extends Controller
         abort_if($proposal->status !== 'pending', 422, 'هذا العرض لم يعد قيد المراجعة.');
         $proposal->update(['status' => 'rejected']);
 
+        BriefController::markProposalAsOpened((string) $request->user()->id, (string) $proposal->id);
         BriefController::invalidateBriefCaches((string) $request->user()->id);
         \Illuminate\Support\Facades\Cache::forget("company_pending_proposals_{$request->user()->id}");
 
@@ -73,6 +75,8 @@ class ProposalController extends Controller
     {
         $proposal = $this->companyProposal($request, $id);
         $brief = $proposal->brief;
+
+        BriefController::markProposalAsOpened((string) $request->user()->id, (string) $proposal->id);
 
         $conversation = Conversation::firstOrCreate(
             [
@@ -85,10 +89,14 @@ class ProposalController extends Controller
                 'unread_count' => 0,
             ]
         );
-        return redirect()->route('company.dashboard', [
-            'tab' => 'chat',
-            'conversation' => $conversation->id
-        ]);
+        return redirect()->route('company.chat.show', $conversation->id);
+    }
+
+    public function markOpened(Request $request, string $id)
+    {
+        BriefController::markProposalAsOpened((string) $request->user()->id, $id);
+
+        return response()->json(['ok' => true]);
     }
 
     public function sendMessage(Request $request, string $id): RedirectResponse

@@ -25,6 +25,7 @@ const defaultIndustries = [
 const EMPTY_ARRAY = [];
 
 export default function App({
+    activeTab = null,
     requests,
     freelancers = EMPTY_ARRAY,
     exploreFreelancers = EMPTY_ARRAY,
@@ -40,8 +41,16 @@ export default function App({
 
     const activePage = useMemo(() => {
         if (workspaceProject) return 'workspace';
+        if (activeTab && ['explore', 'requests', 'projects', 'chat', 'workspace'].includes(activeTab)) {
+            return activeTab;
+        }
         try {
             const urlObj = new URL(url, 'http://localhost');
+            const pathname = urlObj.pathname.replace(/\/+$/, '');
+            if (pathname === '/company/requests') return 'requests';
+            if (pathname === '/company/projects') return 'projects';
+            if (pathname.startsWith('/company/projects/')) return 'workspace';
+            if (pathname === '/company/chat' || pathname.startsWith('/company/chat/')) return 'chat';
             const tab = urlObj.searchParams.get('tab');
             if (tab && ['explore', 'requests', 'projects', 'chat', 'workspace'].includes(tab)) {
                 return tab;
@@ -51,7 +60,7 @@ export default function App({
         }
         if (conversation) return 'chat';
         return 'explore';
-    }, [url, workspaceProject, conversation]);
+    }, [activeTab, url, workspaceProject, conversation]);
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(() => (
         typeof window === 'undefined' || window.innerWidth >= 768
@@ -277,7 +286,7 @@ export default function App({
 
     // Handler for navigating back from workspace to projects list
     const handleBackFromWorkspace = () => {
-        router.visit('/company?tab=projects');
+        router.visit('/company/projects');
     };
 
     return (

@@ -42,7 +42,7 @@ const Profile = ({ pageTitle, user = {}, company = {} }) => {
     const handleHeaderSearch = (e) => {
         e.preventDefault();
         const q = search.trim();
-        router.visit(q ? `/company?tab=explore&search=${encodeURIComponent(q)}` : '/company?tab=explore');
+        router.visit(q ? `/company?search=${encodeURIComponent(q)}` : '/company');
     };
 
     useEffect(() => {
